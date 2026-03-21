@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path'); // เพิ่ม path เพื่อจัดการตำแหน่งไฟล์
 const app = express();
 
 app.use(cors());
@@ -34,14 +35,13 @@ const auth = (req, res, next) => {
 
 // --- 4. API Routes ---
 
-// Login: ระบบปิด (เช็คชื่ออย่างเดียว ไม่มีการสร้างใหม่)
+// Login
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
 
-    // แก้: ถ้าไม่เจอ User หรือรหัสผิด ให้ Error ทันที (ห้าม new User เอง)
     if (!user || user.password !== password) {
-        return res.status(401).json({ success: false, message: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง (เฉพาะผู้ได้รับอนุญาตเท่านั้น)" });
+        return res.status(401).json({ success: false, message: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" });
     }
 
     res.json({
@@ -80,15 +80,23 @@ app.post("/favorite", auth, async (req, res) => {
     res.json({ success: true, favorites: user.favorites });
 });
 
-const path = require('path');
+// --- 5. Serving Frontend (แก้ปัญหาหน้าขาว) ---
 
-// สั่งให้ Express เสิร์ฟไฟล์ static (HTML, CSS, JS) จากโฟลเดอร์ปัจจุบัน
-app.use(express.static(path.join(__dirname)));
+// บอกให้ Express รู้จักไฟล์ HTML, CSS, JS ในโฟลเดอร์ปัจจุบัน
+app.use(express.static(__dirname));
 
-// ถ้ามีคนเข้าลิงก์หลัก (/) ให้ส่งไฟล์ index.html ไปให้เขา
+// เมื่อเข้าหน้าแรก (/) ให้ส่งไฟล์ index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server on port ${PORT}`));
+// ดักจับการเรียกหน้า .html อื่นๆ (เช่น /admin.html)
+app.get('/:page', (req, res) => {
+    res.sendFile(path.join(__dirname, req.params.page));
+});
+
+// --- 6. Start Server ---
+const PORT = process.env.PORT || 10000; // ใช้ Port 10000 ตามที่ Render กำหนด
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
+});

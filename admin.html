@@ -90,7 +90,10 @@
                   <label class="form-label">ผู้แปล</label>
                   <input type="text" id="translator" class="form-control" />
                 </div>
-
+                <div class="col-md-12">
+                <label class="form-label">ลิงก์คนแปล</label>
+                <input type="url" id="translator_link" class="form-control" placeholder="(https://...)">
+                </div>
                 <div class="col-md-6">
                   <label class="form-label">ลิงก์อ่านแปลไทย</label>
                   <input type="url" id="thai" class="form-control" />
@@ -122,6 +125,8 @@
         const manga = {
           id: Date.now().toString(),
           title: document.getElementById("title").value.trim(),
+          author: document.getElementById('author').value,
+          artist: document.getElementById('artist').value,
           cover: document.getElementById("cover").value.trim(),
           description: document.getElementById("desc").value.trim(),
           tags: document.getElementById("tags").value.split(",").map(t => t.trim()),
@@ -129,6 +134,7 @@
           en_name: document.getElementById("en").value.trim(),
           th_name: document.getElementById("th").value.trim(),
           translator: document.getElementById("translator").value.trim(),
+          translator_link: document.getElementById('translator_link').value,
           thai_url: document.getElementById("thai").value.trim(),
           original_url: document.getElementById("jp_link").value.trim(),
           updated_at: new Date().toISOString(),

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manga Archive - Admin (Add Manga)</title>
+
+    <script>
+      // 1. เช็กสิทธิ์เบื้องต้น: ถ้าไม่มี Token ให้เด้งไปหน้า Login
+      if (!localStorage.getItem("adminToken")) {
+          alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
+          window.location.href = "login.html";
+      }
+
+      // เช็ก Dark Mode
+      if (localStorage.getItem("dark") === "true") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-lg sticky-top">
+      <div class="container">
+        <a class="navbar-brand" href="index.html">Manga Archive</a>
+        <div class="ms-auto d-flex align-items-center">
+            <span class="me-3 text-muted d-none d-sm-inline">Admin: <b id="adminName"></b></span>
+            <button onclick="handleLogout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container py-5">
+      <div class="row justify-content-center">
+        <div class="col-md-8">
+          <div class="card shadow-sm border-0 p-4">
+            <h2 class="fw-bold mb-4">➕ เพิ่มมังงะเรื่องใหม่</h2>
+            
+            <form id="addMangaForm">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">ชื่อเรื่อง (หลัก)</label>
+                  <input type="text" id="title" class="form-control" placeholder="เช่น สารภาพรักกับยัยซื่อบื้อ" required />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">ลิงก์รูปหน้าปก</label>
+                  <input type="url" id="cover" class="form-control" placeholder="https://..." required />
+                </div>
+                <div class="col-12">
+                  <label class="form-label">เรื่องย่อ</label>
+                  <textarea id="desc" class="form-control" rows="4"></textarea>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="col-md-4">
+                  <label class="form-label">ชื่อญี่ปุ่น</label>
+                  <input type="text" id="jp" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">ชื่ออังกฤษ</label>
+                  <input type="text" id="en" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">ชื่อไทยอื่นๆ</label>
+                  <input type="text" id="th" class="form-control" />
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">แท็ก (คั่นด้วยคอมม่า ,)</label>
+                  <input type="text" id="tags" class="form-control" placeholder="Romance, GL, Comedy" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">ผู้แปล</label>
+                  <input type="text" id="translator" class="form-control" />
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">ลิงก์อ่านแปลไทย</label>
+                  <input type="url" id="thai" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">ลิงก์ต้นฉบับ</label>
+                  <input type="url" id="jp_link" class="form-control" />
+                </div>
+              </div>
+
+              <div class="mt-5">
+                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold">บันทึกลงระบบ</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ** เปลี่ยนเป็น URL ของ Render ของคุณ **
+      const API_URL = "https://your-app-name.onrender.com"; 
+
+      document.getElementById("adminName").innerText = localStorage.getItem("username");
+
+      document.getElementById("addMangaForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const manga = {
+          id: Date.now().toString(),
+          title: document.getElementById("title").value.trim(),
+          cover: document.getElementById("cover").value.trim(),
+          description: document.getElementById("desc").value.trim(),
+          tags: document.getElementById("tags").value.split(",").map(t => t.trim()),
+          jp_name: document.getElementById("jp").value.trim(),
+          en_name: document.getElementById("en").value.trim(),
+          th_name: document.getElementById("th").value.trim(),
+          translator: document.getElementById("translator").value.trim(),
+          thai_url: document.getElementById("thai").value.trim(),
+          original_url: document.getElementById("jp_link").value.trim(),
+          updated_at: new Date().toISOString(),
+        };
+
+        try {
+          const res = await fetch(`${API_URL}/add`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": localStorage.getItem("adminToken") // ส่งกุญแจลับไปยืนยัน
+            },
+            body: JSON.stringify(manga),
+          });
+
+          if (res.ok) {
+            alert("✅ เพิ่มมังงะสำเร็จแล้ว!");
+            location.href = "index.html";
+          } else {
+            const err = await res.json();
+            alert("❌ เพิ่มไม่สำเร็จ: " + (err.message || "มีข้อผิดพลาด"));
+          }
+        } catch (error) {
+          console.error("Add Error:", error);
+          alert("❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+        }
+      });
+
+      function handleLogout() {
+        localStorage.clear();
+        window.location.href = "login.html";
+      }
+    </script>
+  </body>
+</html>

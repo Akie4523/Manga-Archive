@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manga Archive - My Favorites</title>
+
+    <script>
+      if (localStorage.getItem("dark") === "true") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-lg sticky-top">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="index.html">📖 Manga Archive</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto align-items-center">
+            <li class="nav-item"><a class="nav-link" href="index.html">Discover</a></li>
+            <li class="nav-item"><a class="nav-link active" href="favorites.html">My Favorites</a></li>
+            <li class="nav-item"><a class="nav-link" href="admin.html">Add Manga</a></li>
+            <li class="nav-item ms-lg-3">
+              <button onclick="toggleDark()" class="btn-toggle-dark" id="dark-toggle-btn">🌙</button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <header class="py-5 bg-light-section">
+      <div class="container text-center">
+        <h2 class="fw-bold mb-0">❤️ รายการโปรดของคุณ</h2>
+        <p class="text-muted mt-2">มังงะทั้งหมดที่คุณบันทึกไว้เพื่ออ่านภายหลัง</p>
+      </div>
+    </header>
+
+    <section class="py-5">
+      <div class="container">
+        <div class="row" id="fav-list">
+          <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-3 text-muted">กำลังดึงรายการโปรด...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      const API_URL = "https://your-app-name.onrender.com"; // ** เปลี่ยนเป็น URL ของคุณ **
+      const username = localStorage.getItem("username");
+
+      if (!username) window.location.href = "login.html";
+
+      // --- ระบบ Dark Mode ---
+      function applyDarkMode() {
+        const isDark = localStorage.getItem("dark") === "true";
+        document.documentElement.classList.toggle("dark", isDark);
+        document.getElementById("dark-toggle-btn").innerHTML = isDark ? "☀️" : "🌙";
+      }
+
+      function toggleDark() {
+        localStorage.setItem("dark", !document.documentElement.classList.contains("dark"));
+        applyDarkMode();
+      }
+
+      // --- โหลดข้อมูล ---
+      async function loadFavorites() {
+        try {
+          const res = await fetch(`${API_URL}/manga`);
+          if (!res.ok) throw new Error();
+          const data = await res.json();
+          
+          const myFavIds = JSON.parse(localStorage.getItem('myFavs')) || [];
+          const favData = data.filter(m => myFavIds.includes(m.id.toString()));
+          
+          render(favData);
+        } catch (err) {
+          document.getElementById("fav-list").innerHTML = `
+            <div class="col-12 text-center py-5 text-danger">
+              <h5>❌ โหลดข้อมูลล้มเหลว</h5>
+              <button class="btn btn-outline-primary btn-sm mt-2" onclick="location.reload()">ลองอีกครั้ง</button>
+            </div>`;
+        }
+      }
+
+      function render(data) {
+        const container = document.getElementById("fav-list");
+        container.innerHTML = "";
+
+        if (data.length === 0) {
+          container.innerHTML = `
+            <div class="col-12 text-center py-5">
+              <p class="text-muted fs-5">ยังไม่มีรายการโปรดเลย...</p>
+              <a href="index.html" class="btn btn-primary rounded-pill px-4">ไปส่องมังงะกันเลย!</a>
+            </div>`;
+          return;
+        }
+
+        data.forEach(manga => {
+          const col = document.createElement("div");
+          col.className = "col-xl-3 col-lg-4 col-sm-6 mb-4";
+          col.innerHTML = `
+            <div class="card manga-card h-100 shadow-sm border-0">
+              <div class="card-img-container">
+                <img src="${manga.cover}" class="card-img-top" alt="${manga.title}" onerror="this.src='https://via.placeholder.com/350x500?text=No+Cover'">
+              </div>
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title text-truncate">${manga.title}</h5>
+                <p class="card-text small text-secondary flex-grow-1">
+                  ${manga.description ? manga.description.substring(0, 60) + '...' : 'ไม่มีเรื่องย่อ'}
+                </p>
+                <div class="btn-group w-100 mt-3">
+                  <a href="detail.html?id=${manga.id}" class="btn btn-primary">อ่าน</a>
+                  <button onclick="removeFav('${manga.id}')" class="btn btn-danger">ลบออก</button>
+                </div>
+              </div>
+            </div>
+          `;
+          container.appendChild(col);
+        });
+      }
+
+      async function removeFav(id) {
+        if (!confirm("ต้องการลบมังงะเรื่องนี้ออกจากรายการโปรดใช่ไหม?")) return;
+        
+        const token = localStorage.getItem('adminToken');
+        try {
+          const res = await fetch(`${API_URL}/favorite`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': token
+            },
+            body: JSON.stringify({ username, mangaId: id })
+          });
+          
+          const result = await res.json();
+          if (result.success) {
+            localStorage.setItem('myFavs', JSON.stringify(result.favorites));
+            loadFavorites(); // โหลดใหม่เพื่ออัปเดต UI
+          }
+        } catch (err) {
+          alert("เกิดข้อผิดพลาดในการลบรายการ");
+        }
+      }
+
+      // เริ่มทำงาน
+      applyDarkMode();
+      loadFavorites();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Manga Archive</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .card { border-radius: 20px; border: none; }
+    </style>
+</head>
+<body>
+    <div class="card p-4 shadow-sm" style="width: 100%; max-width: 400px;">
+        <h3 class="text-center mb-4">🔐 เข้าสู่ระบบ</h3>
+        <input type="text" id="user" class="form-control mb-3" placeholder="ชื่อผู้ใช้">
+        <input type="password" id="pass" class="form-control mb-3" placeholder="รหัสผ่าน">
+        <button onclick="handleLogin()" class="btn btn-primary w-100 py-2">เข้าสู่ระบบ</button>
+        <p class="text-muted small mt-3 text-center">🔒 ระบบส่วนตัว: เฉพาะเพื่อนที่ได้รับอนุญาตเท่านั้น</p>
+    </div>
+
+    <script>
+        const API_URL = "https://your-app-name.onrender.com"; // **แก้เป็น URL ของคุณ **
+        async function handleLogin() {
+            const res = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: user.value, password: pass.value})
+            });
+            const data = await res.json();
+            if(data.success) {
+                localStorage.setItem('adminToken', data.token);
+                localStorage.setItem('username', data.username);
+                localStorage.setItem('myFavs', JSON.stringify(data.favorites));
+                location.href = 'index.html';
+            } else {
+                alert(data.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -23,7 +23,7 @@ const Manga = mongoose.model('Manga', new mongoose.Schema({
 const User = mongoose.model('User', new mongoose.Schema({
     username: { type: String, unique: true },
     password: { type: String },
-    favorites: [String] 
+    favorites: [String]
 }));
 
 // --- 3. Auth Middleware ---
@@ -38,17 +38,17 @@ const auth = (req, res, next) => {
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
-    
+
     // แก้: ถ้าไม่เจอ User หรือรหัสผิด ให้ Error ทันที (ห้าม new User เอง)
     if (!user || user.password !== password) {
         return res.status(401).json({ success: false, message: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง (เฉพาะผู้ได้รับอนุญาตเท่านั้น)" });
     }
-    
-    res.json({ 
-        success: true, 
-        token: process.env.SECRET_TOKEN, 
+
+    res.json({
+        success: true,
+        token: process.env.SECRET_TOKEN,
         username: user.username,
-        favorites: user.favorites 
+        favorites: user.favorites
     });
 });
 
@@ -78,6 +78,16 @@ app.post("/favorite", auth, async (req, res) => {
 
     await user.save();
     res.json({ success: true, favorites: user.favorites });
+});
+
+const path = require('path');
+
+// สั่งให้ Express เสิร์ฟไฟล์ static (HTML, CSS, JS) จากโฟลเดอร์ปัจจุบัน
+app.use(express.static(path.join(__dirname)));
+
+// ถ้ามีคนเข้าลิงก์หลัก (/) ให้ส่งไฟล์ index.html ไปให้เขา
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;

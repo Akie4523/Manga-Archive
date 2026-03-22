@@ -36,6 +36,11 @@ const auth = (req, res, next) => {
 
 // --- 4. API Routes (ส่วนควบคุมข้อมูล) ---
 
+
+app.get("/ping", (req, res) => {
+    res.status(200).send("OK");
+});
+
 // Login
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;

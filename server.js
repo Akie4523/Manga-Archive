@@ -53,7 +53,8 @@ app.post('/login', async (req, res) => {
 
 // ดึงมังงะทั้งหมด
 app.get("/manga", async (req, res) => {
-    res.json(await Manga.find());
+    const mangas = await Manga.find().sort({ _id: -1 }); 
+    res.json(mangas);
 });
 
 // ดึงข้อมูลมังงะรายเรื่อง (ใช้ตอนโหลดหน้าแก้ไข)

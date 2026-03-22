@@ -5,6 +5,11 @@ const cors = require('cors');
 const path = require('path');
 const app = express();
 
+// --- 4. API Routes (ส่วนควบคุมข้อมูล) ---
+app.get("/ping", (req, res) => {
+    return res.status(200).send("OK"); // ใส่ return เพื่อให้จบการทำงานทันที
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -33,13 +38,6 @@ const auth = (req, res, next) => {
     if (req.headers['authorization'] === process.env.SECRET_TOKEN) next();
     else res.status(403).json({ message: "Forbidden: กุญแจไม่ถูกต้อง" });
 };
-
-// --- 4. API Routes (ส่วนควบคุมข้อมูล) ---
-
-
-app.get("/ping", (req, res) => {
-    res.status(200).send("OK");
-});
 
 // Login
 app.post('/login', async (req, res) => {

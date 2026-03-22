@@ -389,3 +389,40 @@ html.dark .form-control {
 html.dark .form-control::placeholder {
     color: #888888 !important;
 }
+
+/* เมื่อเปิด Dark Mode ให้ข้อความในลิสต์และพารากราฟเป็นสีสว่าง */
+.dark body {
+    color: #e0e0e0; /* สีข้อความทั่วไป */
+}
+
+.dark .card {
+    background-color: #1e1e1e; /* สีพื้นหลังการ์ด */
+    color: #ffffff;
+}
+
+.dark .text-muted {
+    color: #b0b0b0 !important; /* ปรับสีเทาให้อ่อนลงหน่อยจะได้อ่านออก */
+}
+
+.dark ul li {
+    color: #ffffff; /* บังคับให้หัวข้อใน List เป็นสีขาว */
+}
+
+/* สไตล์กล่อง GitHub ในหน้า About */
+.github-box {
+    transition: transform 0.2s ease;
+}
+
+.github-box:hover {
+    transform: translateY(-3px); /* ให้มันลอยขึ้นนิดๆ เวลาเอาเมาส์วาง */
+}
+
+/* เมื่ออยู่ใน Dark Mode */
+.dark .github-box {
+    background-color: #2d2d2d !important; /* พื้นหลังเข้มขึ้น */
+    border: 1px solid #444;
+}
+
+.dark .github-box p {
+    color: #b0b0b0 !important;
+}

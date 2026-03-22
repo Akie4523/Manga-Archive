@@ -247,7 +247,8 @@ html.dark .form-control {
 
 /* แก้ไข Placeholder (ข้อความจางๆ ในช่องกรอก) */
 html.dark .form-control::placeholder {
-    color: #888888 !important;
+    color: #6c757d !important; 
+    opacity: 1;
 }
 
 /* แก้ไขสีข้อความใน Dropdown หรือปุ่มอื่นๆ ที่ยังดำอยู่ */
@@ -368,4 +369,23 @@ a.translator-badge:hover {
 html.dark .translator-badge {
     background-color: rgba(13, 202, 240, 0.05);
     color: #6edff6;
+}
+
+/* จัดการ Card ในหน้า Admin */
+html.dark .card, html.dark .admin-card {
+    background-color: #1e1e1e !important; /* สีเทาเข้ม */
+    border: 1px solid #333 !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+}
+
+/* จัดการช่องกรอกในหน้า Admin (Dark Mode) */
+html.dark .form-control {
+    background-color: #2d2d2d !important; /* พื้นหลังช่องกรอกสีเทาเข้ม */
+    color: #ffffff !important;           /* ตัวหนังสือขาว */
+    border: 1px solid #444 !important;    /* ขอบเทา */
+}
+
+/* แก้สี Placeholder ในโหมดมืดให้สว่างขึ้น */
+html.dark .form-control::placeholder {
+    color: #888888 !important;
 }

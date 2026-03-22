@@ -29,12 +29,38 @@
     <nav class="navbar navbar-expand-lg sticky-top">
       <div class="container">
         <a class="navbar-brand" href="index.html">Manga Archive</a>
-        <div class="ms-auto d-flex align-items-center">
+        <div class="ms-auto d-flex align-items-center gap-2 ">
             <span class="me-3 text-muted d-none d-sm-inline">Admin: <b id="adminName"></b></span>
             <button onclick="handleLogout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button>
+            <a href="index.html" class="btn btn-outline-secondary btn-sm">
+            ย้อนกลับ
+            </a>
+            <button id="dark-toggle-btn" onclick="toggleDark()" class="btn btn-outline-secondary btn-sm">
+              🌙
+            </button>
         </div>
       </div>
     </nav>
+    <script>
+      // --- Dark Mode ---
+      function applyDarkMode() {
+        const isDark = localStorage.getItem("dark") === "true";
+        const btn = document.getElementById("dark-toggle-btn");
+        if (isDark) {
+          document.documentElement.classList.add("dark");
+          btn.innerHTML = "☀️";
+        } else {
+          document.documentElement.classList.remove("dark");
+          btn.innerHTML = "🌙";
+        }
+      }
+      function toggleDark() {
+        const isDark = !document.documentElement.classList.contains("dark");
+        localStorage.setItem("dark", isDark);
+        applyDarkMode();
+      }
+      applyDarkMode();
+    </script>
 
     <div class="container py-5">
       <div class="row justify-content-center">
@@ -167,6 +193,42 @@
         localStorage.clear();
         window.location.href = "login.html";
       }
+      // เพิ่มไว้ในส่วน JavaScript ของหน้า admin.html
+      document.addEventListener('DOMContentLoaded', async () => {
+          const urlParams = new URLSearchParams(window.location.search);
+          const editIdFromUrl = urlParams.get('editId');
+
+          if (editIdFromUrl) {
+              // 1. เปลี่ยนหัวข้อหน้าเว็บให้รู้ว่ากำลังแก้ไข
+              document.querySelector('h2').innerText = "📝 แก้ไขข้อมูลมังงะ";
+              
+              // 2. ดึงข้อมูลมังงะจาก API
+              try {
+                  const res = await fetch(`/api/manga/${editIdFromUrl}`);
+                  if (!res.ok) throw new Error("ดึงข้อมูลไม่สำเร็จ");
+                  const manga = await res.json();
+
+                  // 3. เอาข้อมูลไปยัดใส่ Input (ต้องแก้ ID ให้ตรงกับฟอร์มของคุณนะ)
+                  document.getElementById('title').value = manga.title || '';
+                  document.getElementById('author').value = manga.author || '';
+                  document.getElementById('description').value = manga.description || '';
+                  document.getElementById('coverImage').value = manga.coverImage || '';
+                  // ... เพิ่มช่องอื่นๆ ที่เหลือ ...
+
+                  // 4. เปลี่ยนปุ่ม Submit ให้เป็นปุ่ม "บันทึกการแก้ไข"
+                  const submitBtn = document.querySelector('button[type="submit"]');
+                  submitBtn.innerText = "บันทึกการแก้ไข";
+                  submitBtn.classList.replace('btn-primary', 'btn-warning');
+
+                  // 5. เก็บ ID ไว้ใช้ตอนกด Save (ส่งในฟังก์ชัน Submit ของคุณ)
+                  window.currentEditId = editIdFromUrl; 
+
+              } catch (err) {
+                  console.error(err);
+                  alert("ไม่สามารถดึงข้อมูลมาแก้ไขได้");
+              }
+          }
+      });
     </script>
   </body>
 </html>

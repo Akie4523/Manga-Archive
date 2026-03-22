@@ -199,7 +199,10 @@
 
       function editManga(id) {
           // ส่วนนี้คุณสามารถสร้างหน้า edit.html แยก หรือใช้ Prompt แบบเดิมแต่ต้องแก้ fetch ให้ส่ง Token ด้วยครับ
-          alert("ฟังก์ชันแก้ไขกำลังพัฒนา (อย่าลืมส่ง Token ใน Header ด้วยนะ)");
+          function editManga(id) {
+          // ส่งไปหน้า admin.html และพ่วง ?id=... ไปด้วย
+          window.location.href = `admin.html?editId=${id}`;
+        }
       }
     </script>
   </body>

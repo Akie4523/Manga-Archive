@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Manga Archive - Admin (Add Manga)</title>
+    <title>Manga Archive - Admin (Add/Edit Manga)</title>
 
     <script>
-      // 1. เช็กสิทธิ์เบื้องต้น: ถ้าไม่มี Token ให้เด้งไปหน้า Login
+      // 1. เช็กสิทธิ์เบื้องต้น
       if (!localStorage.getItem("adminToken")) {
           alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
           window.location.href = "login.html";
@@ -32,41 +32,17 @@
         <div class="ms-auto d-flex align-items-center gap-2 ">
             <span class="me-3 text-muted d-none d-sm-inline">Admin: <b id="adminName"></b></span>
             <button onclick="handleLogout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button>
-            <a href="index.html" class="btn btn-outline-secondary btn-sm">
-            ย้อนกลับ
-            </a>
-            <button id="dark-toggle-btn" onclick="toggleDark()" class="btn btn-outline-secondary btn-sm">
-              🌙
-            </button>
+            <a href="index.html" class="btn btn-outline-secondary btn-sm">ย้อนกลับ</a>
+            <button id="dark-toggle-btn" onclick="toggleDark()" class="btn btn-outline-secondary btn-sm">🌙</button>
         </div>
       </div>
     </nav>
-    <script>
-      // --- Dark Mode ---
-      function applyDarkMode() {
-        const isDark = localStorage.getItem("dark") === "true";
-        const btn = document.getElementById("dark-toggle-btn");
-        if (isDark) {
-          document.documentElement.classList.add("dark");
-          btn.innerHTML = "☀️";
-        } else {
-          document.documentElement.classList.remove("dark");
-          btn.innerHTML = "🌙";
-        }
-      }
-      function toggleDark() {
-        const isDark = !document.documentElement.classList.contains("dark");
-        localStorage.setItem("dark", isDark);
-        applyDarkMode();
-      }
-      applyDarkMode();
-    </script>
 
     <div class="container py-5">
       <div class="row justify-content-center">
         <div class="col-md-8">
           <div class="card shadow-sm border-0 p-4">
-            <h2 class="fw-bold mb-4">➕ เพิ่มมังงะเรื่องใหม่</h2>
+            <h2 id="formTitle" class="fw-bold mb-4">➕ เพิ่มมังงะเรื่องใหม่</h2>
             
             <form id="addMangaForm">
               <div class="row g-3">
@@ -105,11 +81,11 @@
 
                 <div class="col-md-6">
                   <label class="form-label">ผู้แต่ง (Author)</label>
-                  <input type="text" id="author" class="form-control" placeholder="" required>
+                  <input type="text" id="author" class="form-control" required>
                 </div>
                 <div class="col-md-6">
-                <label class="form-label">ผู้วาด (Artist)</label>
-                <input type="text" id="artist" class="form-control" placeholder="" required>
+                  <label class="form-label">ผู้วาด (Artist)</label>
+                  <input type="text" id="artist" class="form-control" required>
                 </div>
 
                 <div class="col-md-6">
@@ -117,8 +93,8 @@
                   <input type="text" id="translator" class="form-control" />
                 </div>
                 <div class="col-md-12">
-                <label class="form-label">ลิงก์คนแปล</label>
-                <input type="url" id="translator_link" class="form-control" placeholder="(https://...)">
+                  <label class="form-label">ลิงก์คนแปล</label>
+                  <input type="url" id="translator_link" class="form-control" placeholder="https://...">
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">ลิงก์อ่านแปลไทย</label>
@@ -131,7 +107,7 @@
               </div>
 
               <div class="mt-5">
-                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold">บันทึกลงระบบ</button>
+                <button type="submit" id="submitBtn" class="btn btn-primary w-100 py-3 fw-bold">บันทึกลงระบบ</button>
               </div>
             </form>
           </div>
@@ -140,19 +116,77 @@
     </div>
 
     <script>
-      // ** เปลี่ยนเป็น URL ของ Render ของคุณ **
       const API_URL = "https://manga-archive.onrender.com"; 
+      let currentEditId = null; // ตัวแปรเก็บ ID กรณีแก้ไข
 
       document.getElementById("adminName").innerText = localStorage.getItem("username");
 
+      // --- Dark Mode Logic ---
+      function applyDarkMode() {
+        const isDark = localStorage.getItem("dark") === "true";
+        const btn = document.getElementById("dark-toggle-btn");
+        if (isDark) {
+          document.documentElement.classList.add("dark");
+          btn.innerHTML = "☀️";
+        } else {
+          document.documentElement.classList.remove("dark");
+          btn.innerHTML = "🌙";
+        }
+      }
+      function toggleDark() {
+        const isDark = !document.documentElement.classList.contains("dark");
+        localStorage.setItem("dark", isDark);
+        applyDarkMode();
+      }
+      applyDarkMode();
+
+      // --- Check if Edit Mode ---
+      document.addEventListener('DOMContentLoaded', async () => {
+          const urlParams = new URLSearchParams(window.location.search);
+          const editIdFromUrl = urlParams.get('editId');
+
+          if (editIdFromUrl) {
+              currentEditId = editIdFromUrl;
+              document.getElementById('formTitle').innerText = "📝 แก้ไขข้อมูลมังงะ";
+              const submitBtn = document.getElementById('submitBtn');
+              submitBtn.innerText = "บันทึกการแก้ไข";
+              submitBtn.classList.replace('btn-primary', 'btn-warning');
+
+              try {
+                  const res = await fetch(`${API_URL}/api/manga/${editIdFromUrl}`);
+                  if (!res.ok) throw new Error("ดึงข้อมูลไม่สำเร็จ");
+                  const manga = await res.json();
+
+                  // ยัดข้อมูลใส่ Input (ตรวจสอบ ID ให้ตรงกับ HTML)
+                  document.getElementById('title').value = manga.title || '';
+                  document.getElementById('cover').value = manga.cover || '';
+                  document.getElementById('desc').value = manga.description || '';
+                  document.getElementById('jp').value = manga.jp_name || '';
+                  document.getElementById('en').value = manga.en_name || '';
+                  document.getElementById('th').value = manga.th_name || '';
+                  document.getElementById('tags').value = (manga.tags || []).join(', ');
+                  document.getElementById('author').value = manga.author || '';
+                  document.getElementById('artist').value = manga.artist || '';
+                  document.getElementById('translator').value = manga.translator || '';
+                  document.getElementById('translator_link').value = manga.translator_link || '';
+                  document.getElementById('thai').value = manga.thai_url || '';
+                  document.getElementById('jp_link').value = manga.original_url || '';
+
+              } catch (err) {
+                  console.error(err);
+                  alert("❌ ไม่สามารถดึงข้อมูลมังงะมาแก้ไขได้");
+              }
+          }
+      });
+
+      // --- Handle Form Submit (Add & Edit) ---
       document.getElementById("addMangaForm").addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const manga = {
-          id: Date.now().toString(),
+        const mangaData = {
           title: document.getElementById("title").value.trim(),
-          author: document.getElementById('author').value,
-          artist: document.getElementById('artist').value,
+          author: document.getElementById('author').value.trim(),
+          artist: document.getElementById('artist').value.trim(),
           cover: document.getElementById("cover").value.trim(),
           description: document.getElementById("desc").value.trim(),
           tags: document.getElementById("tags").value.split(",").map(t => t.trim()),
@@ -160,31 +194,39 @@
           en_name: document.getElementById("en").value.trim(),
           th_name: document.getElementById("th").value.trim(),
           translator: document.getElementById("translator").value.trim(),
-          translator_link: document.getElementById('translator_link').value,
+          translator_link: document.getElementById('translator_link').value.trim(),
           thai_url: document.getElementById("thai").value.trim(),
           original_url: document.getElementById("jp_link").value.trim(),
           updated_at: new Date().toISOString(),
         };
 
+        // ถ้าไม่ใช่โหมดแก้ไข ให้สร้าง ID ใหม่ (สำหรับเพิ่มใหม่)
+        if (!currentEditId) {
+            mangaData.id = Date.now().toString();
+        }
+
+        const fetchURL = currentEditId ? `${API_URL}/api/manga/${currentEditId}` : `${API_URL}/add`;
+        const fetchMethod = currentEditId ? "PUT" : "POST";
+
         try {
-          const res = await fetch(`${API_URL}/add`, {
-            method: "POST",
+          const res = await fetch(fetchURL, {
+            method: fetchMethod,
             headers: {
               "Content-Type": "application/json",
-              "Authorization": localStorage.getItem("adminToken") // ส่งกุญแจลับไปยืนยัน
+              "Authorization": localStorage.getItem("adminToken")
             },
-            body: JSON.stringify(manga),
+            body: JSON.stringify(mangaData),
           });
 
           if (res.ok) {
-            alert("✅ เพิ่มมังงะสำเร็จแล้ว!");
+            alert(currentEditId ? "✅ แก้ไขข้อมูลสำเร็จ!" : "✅ เพิ่มมังงะสำเร็จแล้ว!");
             location.href = "index.html";
           } else {
             const err = await res.json();
-            alert("❌ เพิ่มไม่สำเร็จ: " + (err.message || "มีข้อผิดพลาด"));
+            alert("❌ ผิดพลาด: " + (err.message || "มีข้อผิดพลาด"));
           }
         } catch (error) {
-          console.error("Add Error:", error);
+          console.error("Submit Error:", error);
           alert("❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
         }
       });
@@ -193,42 +235,6 @@
         localStorage.clear();
         window.location.href = "login.html";
       }
-      // เพิ่มไว้ในส่วน JavaScript ของหน้า admin.html
-      document.addEventListener('DOMContentLoaded', async () => {
-          const urlParams = new URLSearchParams(window.location.search);
-          const editIdFromUrl = urlParams.get('editId');
-
-          if (editIdFromUrl) {
-              // 1. เปลี่ยนหัวข้อหน้าเว็บให้รู้ว่ากำลังแก้ไข
-              document.querySelector('h2').innerText = "📝 แก้ไขข้อมูลมังงะ";
-              
-              // 2. ดึงข้อมูลมังงะจาก API
-              try {
-                  const res = await fetch(`/api/manga/${editIdFromUrl}`);
-                  if (!res.ok) throw new Error("ดึงข้อมูลไม่สำเร็จ");
-                  const manga = await res.json();
-
-                  // 3. เอาข้อมูลไปยัดใส่ Input (ต้องแก้ ID ให้ตรงกับฟอร์มของคุณนะ)
-                  document.getElementById('title').value = manga.title || '';
-                  document.getElementById('author').value = manga.author || '';
-                  document.getElementById('description').value = manga.description || '';
-                  document.getElementById('coverImage').value = manga.coverImage || '';
-                  // ... เพิ่มช่องอื่นๆ ที่เหลือ ...
-
-                  // 4. เปลี่ยนปุ่ม Submit ให้เป็นปุ่ม "บันทึกการแก้ไข"
-                  const submitBtn = document.querySelector('button[type="submit"]');
-                  submitBtn.innerText = "บันทึกการแก้ไข";
-                  submitBtn.classList.replace('btn-primary', 'btn-warning');
-
-                  // 5. เก็บ ID ไว้ใช้ตอนกด Save (ส่งในฟังก์ชัน Submit ของคุณ)
-                  window.currentEditId = editIdFromUrl; 
-
-              } catch (err) {
-                  console.error(err);
-                  alert("ไม่สามารถดึงข้อมูลมาแก้ไขได้");
-              }
-          }
-      });
     </script>
   </body>
 </html>

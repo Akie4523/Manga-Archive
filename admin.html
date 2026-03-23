@@ -101,6 +101,10 @@
                   <input type="url" id="thai" class="form-control" />
                 </div>
                 <div class="col-md-6">
+                  <label class="form-label">ลิงก์อ่านแปล ENG</label>
+                  <input type="url" id="eng" class="form-control" />
+                </div>
+                <div class="col-md-12">
                   <label class="form-label">ลิงก์ต้นฉบับ</label>
                   <input type="url" id="jp_link" class="form-control" />
                 </div>
@@ -170,6 +174,7 @@
                   document.getElementById('translator').value = manga.translator || '';
                   document.getElementById('translator_link').value = manga.translator_link || '';
                   document.getElementById('thai').value = manga.thai_url || '';
+                  document.getElementById('eng').value = manga.eng_url || '';
                   document.getElementById('jp_link').value = manga.original_url || '';
 
               } catch (err) {
@@ -196,6 +201,7 @@
           translator: document.getElementById("translator").value.trim(),
           translator_link: document.getElementById('translator_link').value.trim(),
           thai_url: document.getElementById("thai").value.trim(),
+          eng_url: document.getElementById("eng").value.trim(),
           original_url: document.getElementById("jp_link").value.trim(),
           updated_at: new Date().toISOString(),
         };

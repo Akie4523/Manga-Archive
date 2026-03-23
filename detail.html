@@ -142,13 +142,19 @@
           ? `<a href="${transLink}" target="_blank" class="translator-badge text-decoration-none">🌐 ${manga.translator || "ไม่ระบุ"}</a>`
           : `<span class="translator-badge">🌐 ${manga.translator || "ไม่ระบุ"}</span>`;
 
+        // จัดการการแสดงชื่อ: ใช้ชื่อ ENG ถ้าไม่มีชื่อไทย
+        const displayTitle = manga.title || manga.en_name || manga.jp_name || "ไม่ระบุชื่อ";
+        
+        // ถ้าหัวข้อใหญ่เป็น ENG ก็ไม่แสดง ENG ในส่วนชื่ออื่นๆ
+        const showEngInSub = !(displayTitle === manga.en_name && manga.en_name);
+
         document.getElementById("app").innerHTML = `
             <div class="container">
               <div class="detail-card">
                 <div class="row g-5">
                   <div class="col-md-4 text-center">
                     <div class="detail-cover-wrap" style="max-width: 350px; margin: 0 auto;">
-                      <img src="${manga.cover || ''}" class="detail-cover shadow rounded w-100" alt="${manga.title}">
+                      <img src="${manga.cover || ''}" class="detail-cover shadow rounded w-100" alt="${displayTitle}">
                       <button type="button" class="btn btn-back btn-back-mobile btn-outline-light" onclick="history.back()">
                         ← ย้อนกลับ
                       </button>
@@ -157,10 +163,10 @@
                   <div class="col-md-8">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                       <div>
-                        <h1 class="detail-title-th mb-2">${manga.title}</h1>
+                        <h1 class="detail-title-th mb-2">${displayTitle}</h1>
                         <div class="detail-title-sub-stack">
-                          <div class="detail-title-sub text-muted">${manga.jp_name || ""}</div>
-                          <div class="detail-title-sub text-muted">${manga.en_name || ""}</div>
+                          ${manga.title ? `<div class="detail-title-sub text-muted">${manga.jp_name || ""}</div>
+                          ${showEngInSub ? `<div class="detail-title-sub text-muted">${manga.en_name || ""}</div>` : ""}` : `<div class="detail-title-sub text-muted">${manga.jp_name || ""}</div>`}
                         </div>
                       </div>
                       <div class="detail-actions-top">
@@ -186,6 +192,7 @@
 
                     <div class="d-flex flex-wrap gap-3">
                       ${manga.thai_url ? `<a href="${manga.thai_url}" class="btn btn-primary px-4 py-2" target="_blank">📖 อ่านแปลไทย</a>` : ""}
+                      ${manga.eng_url ? `<a href="${manga.eng_url}" class="btn btn-outline-secondary px-4 py-2" target="_blank">📖 อ่านแปล ENG</a>` : ""}
                       ${manga.original_url ? `<a href="${manga.original_url}" class="btn btn-outline-secondary px-4 py-2" target="_blank">🌐 ต้นฉบับ</a>` : ""}
                     </div>
                   </div>

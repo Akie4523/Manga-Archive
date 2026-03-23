@@ -143,3 +143,4 @@ manga.json
 users.json
 node_modules/
 .env
+.vscode

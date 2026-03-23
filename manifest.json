@@ -1,0 +1,20 @@
+{
+  "short_name": "MangaArchive",
+  "name": "Manga Archive",
+  "icons": [
+    {
+      "src": "assets/img/android/mipmap-xxxhdpi/Manga Arvhive.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/img/playstore.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "./index.html",
+  "display": "standalone",
+  "theme_color": "#1a1a1a",
+  "background_color": "#ffffff"
+}

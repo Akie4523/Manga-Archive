@@ -22,17 +22,27 @@
     <nav class="navbar navbar-expand-lg sticky-top">
       <div class="container">
         <a class="navbar-brand fw-bold" href="index.html">📖 Manga Archive</a>
+
+        <!-- Mobile back button on the navbar -->
+        <button type="button" class="btn btn-back-navbar-mobile btn-outline-secondary ms-auto d-lg-none" onclick="history.back()">
+          ← ย้อนกลับ
+        </button>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav ms-auto align-items-center">
             <li class="nav-item"><a class="nav-link" href="index.html">Discover</a></li>
             <li class="nav-item"><a class="nav-link" href="favorites.html">My Favorites</a></li>
-            <div class="ms-auto d-flex align-items-center gap-3">
-            <a href="about.html" class="nav-link about-link d-none d-sm-inline">About</a>
-            
-            <div id="authSection">
-                </div>
+
             <li class="nav-item ms-lg-3">
-              <button onclick="toggleDark()" class="btn-toggle-dark" id="dark-toggle-btn">🌙</button>
+              <div class="d-flex align-items-center gap-3">
+                <a href="about.html" class="nav-link about-link d-none d-sm-inline">About</a>
+                <div id="authSection"></div>
+                <button onclick="toggleDark()" class="btn-toggle-dark" id="dark-toggle-btn">🌙</button>
+              </div>
             </li>
           </ul>
         </div>
@@ -126,17 +136,30 @@
               <div class="detail-card">
                 <div class="row g-5">
                   <div class="col-md-4 text-center">
-                    <img src="${manga.cover || ''}" class="detail-cover shadow rounded w-100" style="max-width: 350px;">
+                    <div class="detail-cover-wrap" style="max-width: 350px; margin: 0 auto;">
+                      <img src="${manga.cover || ''}" class="detail-cover shadow rounded w-100" alt="${manga.title}">
+                      <button type="button" class="btn btn-back btn-back-mobile btn-outline-light" onclick="history.back()">
+                        ← ย้อนกลับ
+                      </button>
+                    </div>
                   </div>
                   <div class="col-md-8">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                       <div>
-                        <h1 class="manga-title mb-1">${manga.title}</h1>
-                        <p class="text-muted small">${manga.jp_name || ""}</p>
+                        <h1 class="detail-title-th mb-2">${manga.title}</h1>
+                        <div class="detail-title-sub-stack">
+                          <div class="detail-title-sub text-muted">${manga.jp_name || ""}</div>
+                          <div class="detail-title-sub text-muted">${manga.en_name || ""}</div>
+                        </div>
                       </div>
-                      <button onclick="toggleFavorite('${manga.id}')" class="btn btn-fav ${isFav ? 'active' : ''}">
-                        ${isFav ? '❤️' : '🤍'}
-                      </button>
+                      <div class="detail-actions-top">
+                        <button type="button" class="btn btn-back btn-back-desktop btn-outline-secondary" onclick="history.back()">
+                          ← ย้อนกลับ
+                        </button>
+                        <button onclick="toggleFavorite('${manga.id}')" class="btn btn-fav ${isFav ? 'active' : ''}">
+                          ${isFav ? '❤️' : '🤍'}
+                        </button>
+                      </div>
                     </div>
 
                     <p class="manga-desc text-muted">${manga.description || "ไม่มีเรื่องย่อ"}</p>

@@ -1,270 +1,91 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Manga Archive - My Favorites</title>
-
+  <title>My Favorites - Manga Archive</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <script>
+    tailwind.config = { darkMode: 'class' }
     if (localStorage.getItem("dark") === "true") {
       document.documentElement.classList.add("dark");
     }
   </script>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap"
-    rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css" />
-
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/img/Assets.xcassets/AppIcon.appiconset/180.png">
-  <link rel="apple-touch-icon" sizes="152x152" href="assets/img/Assets.xcassets/AppIcon.appiconset/152.png">
-
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/img/playstore.png">
-
-  <link rel="manifest" href="manifest.json">
-
 </head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
 
-<body>
-  <nav class="navbar navbar-expand-lg sticky-top">
-    <div class="container">
-      <a class="navbar-brand fw-bold" href="index.html">📖 Manga Archive</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto align-items-center">
-          <li class="nav-item"><a class="nav-link" href="index.html">Discover</a></li>
-          <li class="nav-item"><a class="nav-link active" href="favorites.html">My Favorites</a></li>
-          <li class="nav-item"><a class="nav-link" href="admin.html">Add Manga</a></li>
-          <li class="nav-item ms-lg-3">
-            <div class="d-flex align-items-center gap-3">
-              <a href="about.html" class="nav-link about-link d-none d-sm-inline">About</a>
-              <div id="authSection"></div>
-              <button onclick="toggleDark()" class="btn-toggle-dark" id="dark-toggle-btn">🌙</button>
-            </div>
-          </li>
-        </ul>
-      </div>
+  <nav class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+      <a href="index.html" class="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">Manga Archive</a>
+      <a href="index.html" class="text-sm font-medium hover:text-blue-500">← กลับหน้าหลัก</a>
     </div>
   </nav>
 
-  <header class="py-5 bg-light-section">
-    <div class="container text-center">
-      <h2 class="fw-bold mb-0">❤️ รายการโปรดของคุณ</h2>
-      <p class="text-muted mt-2">มังงะทั้งหมดที่คุณบันทึกไว้เพื่ออ่านภายหลัง</p>
+  <main class="max-w-7xl mx-auto px-4 py-10">
+    <h1 class="text-3xl font-bold mb-8">รายการโปรดของฉัน</h1>
+    
+    <div id="manga-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+      <div class="col-span-full text-center py-20 opacity-50 text-lg">กำลังโหลดรายการโปรด...</div>
     </div>
-  </header>
-
-  <section class="py-4">
-    <div class="container">
-      <div class="row g-3 mb-4 justify-content-center">
-        <div class="col-md-5 col-lg-6">
-          <div class="input-group">
-            <span class="input-group-text">🔍</span>
-            <input id="search" type="text" class="form-control" placeholder="ค้นหาจากชื่อ..."
-              oninput="combinedFilter()" />
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <select id="tag-filter" class="form-select" onchange="combinedFilter()">
-            <option value="">🏷️ ทุกหมวดหมู่</option>
-          </select>
-        </div>
-        <div class="col-6 col-md-2">
-          <div class="btn-group w-100" role="group">
-            <button type="button" class="btn btn-outline-secondary btn-view-toggle active" id="btn-grid"
-              onclick="setView('grid')">🔳</button>
-            <button type="button" class="btn btn-outline-secondary btn-view-toggle" id="btn-list"
-              onclick="setView('list')">☰</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="row" id="fav-list">
-        <div class="col-12 text-center py-5 text-muted">กำลังดึงรายการโปรด...</div>
-      </div>
-    </div>
-  </section>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+  </main>
 
   <script>
-    const API_URL = "https://manga-archive.onrender.com"; // ** เปลี่ยนเป็น URL ของคุณ **
+    const API_URL = "https://manga-archive.onrender.com";
     const username = localStorage.getItem("username");
 
-    if (!username) window.location.href = "login.html";
-
-    let allData = [];
-    let currentView = localStorage.getItem("viewMode") || "grid";
-
-    // --- ระบบ Dark Mode ---
-    function applyDarkMode() {
-      const isDark = localStorage.getItem("dark") === "true";
-      document.documentElement.classList.toggle("dark", isDark);
-      const btn = document.getElementById("dark-toggle-btn");
-      if (btn) btn.innerHTML = isDark ? "☀️" : "🌙";
-    }
-
-    function toggleDark() {
-      localStorage.setItem("dark", !document.documentElement.classList.contains("dark"));
-      applyDarkMode();
-    }
-
-    // --- View System ---
-    function setView(mode) {
-      currentView = mode;
-      localStorage.setItem("viewMode", mode);
-
-      const gridBtn = document.getElementById("btn-grid");
-      const listBtn = document.getElementById("btn-list");
-      if (gridBtn) gridBtn.classList.toggle("active", mode === "grid");
-      if (listBtn) listBtn.classList.toggle("active", mode === "list");
-
-      const container = document.getElementById("fav-list");
-      if (container) container.className = `row ${mode === "list" ? "view-list" : ""}`;
-
-      combinedFilter();
-    }
-
-    // --- Filter UI ---
-    function combinedFilter() {
-      const keyword = (document.getElementById("search")?.value || "").toLowerCase();
-      const selectedTag = document.getElementById("tag-filter")?.value || "";
-
-      const filtered = allData.filter(m => {
-        const matchTitle = [m.title, m.en_name, m.jp_name, m.th_name].some(n =>
-          n?.toLowerCase().includes(keyword)
-        );
-        const matchTag = selectedTag === "" || m.tags?.includes(selectedTag);
-        return matchTitle && matchTag;
-      });
-      render(filtered);
-    }
-
     async function loadFavorites() {
+      if (!username) return window.location.href = "login.html";
+      
       try {
         const res = await fetch(`${API_URL}/manga`);
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-
-        const myFavIds = JSON.parse(localStorage.getItem("myFavs")) || [];
-        const favData = data.filter(m => myFavIds.includes(m.id.toString()));
-        allData = favData;
-
-        // สร้าง tag filter จากรายการโปรด
-        const tagSelect = document.getElementById("tag-filter");
-        const tagSet = new Set();
-        favData.forEach(m => m.tags?.forEach(t => tagSet.add(t.trim())));
-        // รีเซ็ต options ยกเว้นตัวแรก
-        if (tagSelect) {
-          tagSelect.innerHTML = `<option value="">🏷️ ทุกหมวดหมู่</option>`;
-          Array.from(tagSet).sort().forEach(tag => {
-            const option = document.createElement("option");
-            option.value = tag;
-            option.textContent = tag;
-            tagSelect.appendChild(option);
-          });
-        }
-
-        setView(currentView); // ตั้งค่า view + render
+        const allManga = await res.json();
+        const myFavs = JSON.parse(localStorage.getItem("myFavs") || "[]");
+        
+        const favList = allManga.filter(m => myFavs.includes(m.id.toString()));
+        render(favList);
       } catch (err) {
-        document.getElementById("fav-list").innerHTML = `
-            <div class="col-12 text-center py-5 text-danger">
-              <h5>❌ โหลดข้อมูลล้มเหลว</h5>
-              <button class="btn btn-outline-primary btn-sm mt-2" onclick="location.reload()">ลองอีกครั้ง</button>
-            </div>`;
+        document.getElementById("manga-list").innerHTML = "❌ โหลดข้อมูลไม่สำเร็จ";
       }
     }
 
     function render(data) {
-      const container = document.getElementById("fav-list");
-      if (!container) return;
-      container.innerHTML = "";
-
+      const container = document.getElementById("manga-list");
       if (data.length === 0) {
-        container.innerHTML = `
-            <div class="col-12 text-center py-5">
-              <p class="text-muted fs-5">ยังไม่มีรายการโปรดเลย...</p>
-              <a href="index.html" class="btn btn-primary rounded-pill px-4">ไปส่องมังงะกันเลย!</a>
-            </div>`;
+        container.innerHTML = `<div class="col-span-full text-center py-20 opacity-50">ยังไม่มีรายการโปรด</div>`;
         return;
       }
 
-      const isDarkMode = document.documentElement.classList.contains("dark");
-
-      data.forEach(manga => {
-        const col = document.createElement("div");
-        col.className = "manga-item col-6 col-md-4 col-xl-3 mb-4";
-
-        const tagsHtml = (manga.tags || [])
-          .slice(0, 3)
-          .map(t => `<span class="tag-badge">${t}</span>`)
-          .join("");
-
-        col.innerHTML = `
-            <div class="card manga-card shadow-sm border-0 h-100">
-              <div class="card-img-container" style="background-image: url('${manga.cover}')">
-                <img src="${manga.cover}" class="card-img-top" alt="${manga.title}"
-                  onerror="const placeholder='https://via.placeholder.com/350x500?text=No+Cover'; this.src=placeholder; const wrap=this.closest('.card-img-container'); if(wrap) wrap.style.backgroundImage='url(\"' + placeholder + '\")';">
-              </div>
-              <div class="card-body p-2 p-md-3 d-flex flex-column">
-                <h6 class="card-title text-truncate mb-1" title="${manga.title}">${manga.title}</h6>
-                <div class="manga-tags">${tagsHtml}</div>
-                <p class="card-text small text-secondary d-none d-sm-block" style="font-size: 0.75rem;">
-                  ${manga.description?.substring(0, 40) || "ไม่มีรายละเอียด"}...
-                </p>
-                <div class="card-actions mt-auto pt-2">
-                  <div class="btn-group w-100">
-                    <a href="detail.html?id=${manga.id}" class="btn btn-sm btn-primary" title="ดูรายละเอียด">อ่านเพิ่มเติม</a>
-                    <button onclick="removeFav('${manga.id}')" class="btn btn-sm btn-danger" title="ลบออก">❤️</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          `;
-
-        container.appendChild(col);
-      });
+      container.innerHTML = data.map(manga => `
+        <div class="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm transition hover:shadow-lg">
+          <div class="relative aspect-[3/4]">
+            <img src="${manga.cover}" class="w-full h-full object-cover">
+            <button onclick="removeFav('${manga.id}')" class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full shadow-lg active:scale-90 transition">❤️</button>
+          </div>
+          <div class="p-3">
+            <h3 class="font-bold text-sm truncate mb-3">${manga.title}</h3>
+            <a href="detail.html?id=${manga.id}" class="block text-center py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-semibold hover:bg-blue-600 hover:text-white transition">อ่านรายละเอียด</a>
+          </div>
+        </div>
+      `).join('');
     }
 
     async function removeFav(id) {
-      if (!confirm("ต้องการลบมังงะเรื่องนี้ออกจากรายการโปรดใช่ไหม?")) return;
-
+      if (!confirm("ลบออกจากรายการโปรด?")) return;
       const token = localStorage.getItem("adminToken");
-      try {
-        const res = await fetch(`${API_URL}/favorite`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token
-          },
-          body: JSON.stringify({ username, mangaId: id })
-        });
-
-        const result = await res.json();
-        if (result.success) {
-          localStorage.setItem("myFavs", JSON.stringify(result.favorites));
-          await loadFavorites();
-        }
-      } catch (err) {
-        alert("เกิดข้อผิดพลาดในการลบรายการ");
+      const res = await fetch(`${API_URL}/favorite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": token },
+        body: JSON.stringify({ username, mangaId: id })
+      });
+      const result = await res.json();
+      if (result.success) {
+        localStorage.setItem("myFavs", JSON.stringify(result.favorites));
+        loadFavorites();
       }
     }
 
-    // เริ่มทำงาน
-    applyDarkMode();
     loadFavorites();
   </script>
-  <footer class="py-4 mt-5 border-top text-center">
-    <div class="container">
-      <p class="text-muted mb-1">© 2024 Manga Archive - Developed by Akie</p>
-      <a href="about.html" class="text-decoration-none text-secondary small">เกี่ยวกับโปรเจกต์นี้</a>
-    </div>
-  </footer>
 </body>
-
 </html>

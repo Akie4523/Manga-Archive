@@ -1,252 +1,217 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Manga Archive - Admin (Add/Edit Manga)</title>
 
-    <script>
-      // 1. เช็กสิทธิ์เบื้องต้น
-      if (!localStorage.getItem("adminToken")) {
-          alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
-          window.location.href = "login.html";
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - Manga Archive</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap"
+    rel="stylesheet" />
+  <script>
+    if (!localStorage.getItem("adminToken")) { window.location.href = "login.html"; }
+    tailwind.config = { darkMode: 'class' }
+    if (localStorage.getItem("dark") === "true") { document.documentElement.classList.add("dark"); }
+  </script>
+</head>
 
-      // เช็ก Dark Mode
-      if (localStorage.getItem("dark") === "true") {
-        document.documentElement.classList.add("dark");
-      }
-    </script>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen font-['Noto_Sans_Thai']">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/css/style.css" />
-  </head>
+  <nav
+    class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-5xl mx-auto px-4 h-16 flex justify-between items-center">
+      <a href="index.html" class="font-bold text-blue-600 dark:text-blue-400">← กลับหน้าหลัก</a>
+      <button onclick="localStorage.clear(); window.location.href='login.html'"
+        class="text-sm text-red-500">Logout</button>
+    </div>
+  </nav>
 
-  <body>
-    <nav class="navbar navbar-expand-lg sticky-top">
-      <div class="container">
-        <a class="navbar-brand" href="index.html">Manga Archive</a>
-        <div class="ms-auto d-flex align-items-center gap-2 ">
-            <span class="me-3 text-muted d-none d-sm-inline">Admin: <b id="adminName"></b></span>
-            <button onclick="handleLogout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button>
-            <a href="index.html" class="btn btn-outline-secondary btn-sm">ย้อนกลับ</a>
-            <button id="dark-toggle-btn" onclick="toggleDark()" class="btn btn-outline-secondary btn-sm">🌙</button>
-        </div>
-      </div>
-    </nav>
+  <main class="max-w-4xl mx-auto px-4 py-10">
+    <div
+      class="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 md:p-10">
+      <h1 id="form-title" class="text-3xl font-bold mb-8 text-center">จัดการข้อมูลมังงะ</h1>
 
-    <div class="container py-5">
-      <div class="row justify-content-center">
-        <div class="col-md-8">
-          <div class="card shadow-sm border-0 p-4">
-            <h2 id="formTitle" class="fw-bold mb-4">➕ เพิ่มมังงะเรื่องใหม่</h2>
-            
-            <form id="addMangaForm">
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label">ชื่อเรื่อง (หลัก)</label>
-                  <input type="text" id="title" class="form-control" placeholder="เช่น สารภาพรักกับยัยซื่อบื้อ" required />
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">ลิงก์รูปหน้าปก</label>
-                  <input type="url" id="cover" class="form-control" placeholder="https://..." required />
-                </div>
-                <div class="col-12">
-                  <label class="form-label">เรื่องย่อ</label>
-                  <textarea id="desc" class="form-control" rows="4"></textarea>
-                </div>
-
-                <hr class="my-4">
-
-                <div class="col-md-4">
-                  <label class="form-label">ชื่อญี่ปุ่น</label>
-                  <input type="text" id="jp" class="form-control" />
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">ชื่ออังกฤษ</label>
-                  <input type="text" id="en" class="form-control" />
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">ชื่อไทยอื่นๆ</label>
-                  <input type="text" id="th" class="form-control" />
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">แท็ก (คั่นด้วยคอมม่า ,)</label>
-                  <input type="text" id="tags" class="form-control" placeholder="Romance, GL, Comedy" />
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">ผู้แต่ง (Author)</label>
-                  <input type="text" id="author" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">ผู้วาด (Artist)</label>
-                  <input type="text" id="artist" class="form-control" required>
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">ผู้แปล</label>
-                  <input type="text" id="translator" class="form-control" />
-                </div>
-                <div class="col-md-12">
-                  <label class="form-label">ลิงก์คนแปล</label>
-                  <input type="url" id="translator_link" class="form-control" placeholder="https://...">
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">ลิงก์อ่านแปลไทย</label>
-                  <input type="url" id="thai" class="form-control" />
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">ลิงก์อ่านแปล ENG</label>
-                  <input type="url" id="eng" class="form-control" />
-                </div>
-                <div class="col-md-12">
-                  <label class="form-label">ลิงก์ต้นฉบับ</label>
-                  <input type="url" id="jp_link" class="form-control" />
-                </div>
-              </div>
-
-              <div class="mt-5">
-                <button type="submit" id="submitBtn" class="btn btn-primary w-100 py-3 fw-bold">บันทึกลงระบบ</button>
-              </div>
-            </form>
+      <form id="manga-form" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-2">
+            <label class="text-sm font-semibold opacity-70">ชื่อเรื่องหลัก (Display Title) *</label>
+            <input type="text" id="title" required
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/50 transition">
+          </div>
+          <div class="space-y-2">
+            <label class="text-sm font-semibold opacity-70">URL รูปหน้าปก *</label>
+            <input type="url" id="cover" required
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/50 transition">
           </div>
         </div>
-      </div>
-    </div>
 
-    <script>
-      const API_URL = "https://manga-archive.onrender.com"; 
-      let currentEditId = null; // ตัวแปรเก็บ ID กรณีแก้ไข
-
-      document.getElementById("adminName").innerText = localStorage.getItem("username");
-
-      // --- Dark Mode Logic ---
-      function applyDarkMode() {
-        const isDark = localStorage.getItem("dark") === "true";
-        const btn = document.getElementById("dark-toggle-btn");
-        if (isDark) {
-          document.documentElement.classList.add("dark");
-          btn.innerHTML = "☀️";
-        } else {
-          document.documentElement.classList.remove("dark");
-          btn.innerHTML = "🌙";
-        }
-      }
-      function toggleDark() {
-        const isDark = !document.documentElement.classList.contains("dark");
-        localStorage.setItem("dark", isDark);
-        applyDarkMode();
-      }
-      applyDarkMode();
-
-      // --- Check if Edit Mode ---
-      document.addEventListener('DOMContentLoaded', async () => {
-          const urlParams = new URLSearchParams(window.location.search);
-          const editIdFromUrl = urlParams.get('editId');
-
-          if (editIdFromUrl) {
-              currentEditId = editIdFromUrl;
-              document.getElementById('formTitle').innerText = "📝 แก้ไขข้อมูลมังงะ";
-              const submitBtn = document.getElementById('submitBtn');
-              submitBtn.innerText = "บันทึกการแก้ไข";
-              submitBtn.classList.replace('btn-primary', 'btn-warning');
-
-              try {
-                  const res = await fetch(`${API_URL}/api/manga/${editIdFromUrl}`);
-                  if (!res.ok) throw new Error("ดึงข้อมูลไม่สำเร็จ");
-                  const manga = await res.json();
-
-                  // ยัดข้อมูลใส่ Input (ตรวจสอบ ID ให้ตรงกับ HTML)
-                  document.getElementById('title').value = manga.title || '';
-                  document.getElementById('cover').value = manga.cover || '';
-                  document.getElementById('desc').value = manga.description || '';
-                  document.getElementById('jp').value = manga.jp_name || '';
-                  document.getElementById('en').value = manga.en_name || '';
-                  document.getElementById('th').value = manga.th_name || '';
-                  document.getElementById('tags').value = (manga.tags || []).join(', ');
-                  document.getElementById('author').value = manga.author || '';
-                  document.getElementById('artist').value = manga.artist || '';
-                  document.getElementById('translator').value = manga.translator || '';
-                  document.getElementById('translator_link').value = manga.translator_link || '';
-                  document.getElementById('thai').value = manga.thai_url || '';
-                  document.getElementById('eng').value = manga.eng_url || '';
-                  document.getElementById('jp_link').value = manga.original_url || '';
-
-              } catch (err) {
-                  console.error(err);
-                  alert("❌ ไม่สามารถดึงข้อมูลมังงะมาแก้ไขได้");
-              }
-          }
-      });
-
-      // --- Handle Form Submit (Add & Edit) ---
-      document.getElementById("addMangaForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const mangaData = {
-          title: document.getElementById("title").value.trim(),
-          author: document.getElementById('author').value.trim(),
-          artist: document.getElementById('artist').value.trim(),
-          cover: document.getElementById("cover").value.trim(),
-          description: document.getElementById("desc").value.trim(),
-          tags: document.getElementById("tags").value.split(",").map(t => t.trim()),
-          jp_name: document.getElementById("jp").value.trim(),
-          en_name: document.getElementById("en").value.trim(),
-          th_name: document.getElementById("th").value.trim(),
-          translator: document.getElementById("translator").value.trim(),
-          translator_link: document.getElementById('translator_link').value.trim(),
-          thai_url: document.getElementById("thai").value.trim(),
-          eng_url: document.getElementById("eng").value.trim(),
-          original_url: document.getElementById("jp_link").value.trim(),
-          updated_at: new Date().toISOString(),
-        };
-
-        // ถ้าไม่ใช่โหมดแก้ไข ให้สร้าง ID ใหม่ (สำหรับเพิ่มใหม่)
-        if (!currentEditId) {
-            mangaData.id = Date.now().toString();
-        }
-
-        const fetchURL = currentEditId ? `${API_URL}/api/manga/${currentEditId}` : `${API_URL}/add`;
-        const fetchMethod = currentEditId ? "PUT" : "POST";
-
-        try {
-          const res = await fetch(fetchURL, {
-            method: fetchMethod,
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": localStorage.getItem("adminToken")
-            },
-            body: JSON.stringify(mangaData),
-          });
-
-          if (res.ok) {
-            alert(currentEditId ? "✅ แก้ไขข้อมูลสำเร็จ!" : "✅ เพิ่มมังงะสำเร็จแล้ว!");
-            location.href = "index.html";
-          } else {
-            const err = await res.json();
-            alert("❌ ผิดพลาด: " + (err.message || "มีข้อผิดพลาด"));
-          }
-        } catch (error) {
-          console.error("Submit Error:", error);
-          alert("❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
-        }
-      });
-
-      function handleLogout() {
-        localStorage.clear();
-        window.location.href = "login.html";
-      }
-    </script>
-        <footer class="py-4 mt-5 border-top text-center">
-        <div class="container">
-            <p class="text-muted mb-1">© 2024 Manga Archive - Developed by Akie</p>
-            <a href="about.html" class="text-decoration-none text-secondary small">เกี่ยวกับโปรเจกต์นี้</a>
+        <div
+          class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
+          <div class="space-y-1">
+            <label class="text-xs font-medium opacity-60">ชื่อภาษาไทย (th_name)</label>
+            <input type="text" id="th_name"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-1 ring-blue-500">
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs font-medium opacity-60">ชื่อภาษาอังกฤษ (en_name)</label>
+            <input type="text" id="en_name"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-1 ring-blue-500">
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs font-medium opacity-60">ชื่อต้นฉบับ (jp_name)</label>
+            <input type="text" id="jp_name"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-1 ring-blue-500">
+          </div>
         </div>
-    </footer>
-  </body>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="space-y-1">
+            <label class="text-sm font-semibold opacity-70">ผู้แต่ง (Author)</label>
+            <input type="text" id="author"
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
+          </div>
+          <div class="space-y-1">
+            <label class="text-sm font-semibold opacity-70">ผู้วาด (Artist)</label>
+            <input type="text" id="artist"
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
+          </div>
+          <div class="space-y-1">
+            <label class="text-sm font-semibold opacity-70">ผู้แปล (Translator)</label>
+            <input type="text" id="translator"
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-sm font-semibold opacity-70">Link โปรไฟล์ผู้แปล (translator_link)</label>
+          <input type="url" id="translator_link" placeholder="https://..."
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="space-y-1">
+            <label class="text-sm font-semibold opacity-70">Link อ่านแปลไทย (thai_url)</label>
+            <input type="url" id="thai_url" placeholder="https://..."
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
+          </div>
+          <div class="space-y-1">
+            <label class="text-sm font-semibold opacity-70">Link อ่านแปล ENG (eng_url)</label>
+            <input type="url" id="eng_url" placeholder="https://..."
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
+          </div>
+          <div class="space-y-1">
+            <label class="text-sm font-semibold opacity-70">Link ต้นฉบับ (original_url)</label>
+            <input type="url" id="original_url" placeholder="https://..."
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-sm font-semibold opacity-70">หมวดหมู่ (Tags)</label>
+          <input type="text" id="tags" placeholder="Action, Fantasy"
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-sm font-semibold opacity-70">เรื่องย่อ (Description)</label>
+          <textarea id="description" rows="5"
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20"></textarea>
+        </div>
+
+        <button type="submit"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-[0.98]">
+          บันทึกข้อมูล
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+  const API_URL = "https://manga-archive.onrender.com";
+  // ดึง editId จาก URL
+  const currentEditId = new URLSearchParams(window.location.search).get("editId");
+
+  // 1. โหลดข้อมูลมาใส่ใน Form เมื่อต้องการแก้ไข
+  if (currentEditId) {
+    document.getElementById("form-title").innerText = "📝 แก้ไขข้อมูลมังงะ";
+    
+    fetch(`${API_URL}/manga`)
+      .then(res => res.json())
+      .then(data => {
+        // แก้ไขจุดนี้: ให้หา ID ที่ตรงกันไม่ว่าจะชื่อฟิลด์ id หรือ _id
+        const m = data.find(x => (x.id || x._id || "").toString() === currentEditId.toString());
+        
+        if (m) {
+          document.getElementById("title").value = m.title || "";
+          document.getElementById("cover").value = m.cover || "";
+          document.getElementById("th_name").value = m.th_name || "";
+          document.getElementById("en_name").value = m.en_name || "";
+          document.getElementById("jp_name").value = m.jp_name || "";
+          document.getElementById("author").value = m.author || "";
+          document.getElementById("artist").value = m.artist || "";
+          document.getElementById("translator").value = m.translator || "";
+          document.getElementById("translator_link").value = m.translator_link || "";
+          document.getElementById("thai_url").value = m.thai_url || "";
+          document.getElementById("eng_url").value = m.eng_url || "";
+          document.getElementById("original_url").value = m.original_url || "";
+          document.getElementById("tags").value = (m.tags || []).join(", ");
+          document.getElementById("description").value = m.description || "";
+        } else {
+          console.error("Manga not found for ID:", currentEditId);
+        }
+      })
+      .catch(err => console.error("Error fetching data:", err));
+  }
+
+  // 2. ฟังก์ชันส่งข้อมูล (Add / Update)
+  document.getElementById("manga-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const mangaData = {
+      title: document.getElementById("title").value,
+      cover: document.getElementById("cover").value,
+      th_name: document.getElementById("th_name").value,
+      en_name: document.getElementById("en_name").value,
+      jp_name: document.getElementById("jp_name").value,
+      author: document.getElementById("author").value,
+      artist: document.getElementById("artist").value,
+      translator: document.getElementById("translator").value,
+      translator_link: document.getElementById("translator_link").value.trim(),
+      thai_url: document.getElementById("thai_url").value,
+      eng_url: document.getElementById("eng_url").value,
+      original_url: document.getElementById("original_url").value,
+      tags: document.getElementById("tags").value.split(",").map(t => t.trim()).filter(t => t),
+      description: document.getElementById("description").value,
+      updated_at: new Date().toISOString() // อัปเดตเวลาเสมอ
+    };
+
+    // เลือก URL และ Method ให้ถูกตัว
+    // ถ้าแก้ไข ใช้ PUT ไปที่ /api/manga/:id | ถ้าเพิ่มใหม่ ใช้ POST ไปที่ /add
+    const finalUrl = currentEditId ? `${API_URL}/api/manga/${currentEditId}` : `${API_URL}/add`;
+    const finalMethod = currentEditId ? "PUT" : "POST";
+
+    try {
+      const res = await fetch(finalUrl, {
+        method: finalMethod,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": localStorage.getItem("adminToken") // อย่าลืมเรื่อง Token
+        },
+        body: JSON.stringify(mangaData),
+      });
+
+      if (res.ok) {
+        alert("✅ บันทึกข้อมูลสำเร็จ!");
+        location.href = "index.html";
+      } else {
+        const errData = await res.json();
+        alert("❌ ผิดพลาด: " + (errData.message || "ไม่สามารถบันทึกได้"));
+      }
+    } catch (error) {
+      alert("❌ ไม่สามารถเชื่อมต่อกับ Server ได้");
+    }
+  });
+</script>
+</body>
+
 </html>

@@ -1,246 +1,150 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Manga Archive - Details</title>
-
+  <title>Details - Manga Archive</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <script>
-    if (localStorage.getItem("dark") === "true") {
-      document.documentElement.classList.add("dark");
-    }
+    tailwind.config = { darkMode: 'class' }
+    if (localStorage.getItem("dark") === "true") { document.documentElement.classList.add("dark"); }
   </script>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap"
-    rel="stylesheet" />
-  <link rel="stylesheet" href="/css/style.css" />
-
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/img/Assets.xcassets/AppIcon.appiconset/180.png">
-  <link rel="apple-touch-icon" sizes="152x152" href="assets/img/Assets.xcassets/AppIcon.appiconset/152.png">
-
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/img/playstore.png">
-
-  <link rel="manifest" href="manifest.json">
-
 </head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen font-['Noto_Sans_Thai']">
 
-<body>
-  <nav class="navbar navbar-expand-lg sticky-top">
-    <div class="container">
-      <a class="navbar-brand fw-bold" href="index.html">📖 Manga Archive</a>
-
-      <!-- Mobile back button on the navbar -->
-      <button type="button" class="btn btn-back-navbar-mobile btn-outline-secondary ms-auto d-lg-none"
-        onclick="history.back()">
-        ← ย้อนกลับ
-      </button>
-
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto align-items-center">
-          <li class="nav-item"><a class="nav-link" href="index.html">Discover</a></li>
-          <li class="nav-item"><a class="nav-link" href="favorites.html">My Favorites</a></li>
-
-          <li class="nav-item ms-lg-3">
-            <div class="d-flex align-items-center gap-3">
-              <a href="about.html" class="nav-link about-link d-none d-sm-inline">About</a>
-              <div id="authSection"></div>
-              <button onclick="toggleDark()" class="btn-toggle-dark" id="dark-toggle-btn">🌙</button>
-            </div>
-          </li>
-        </ul>
-      </div>
+  <nav class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center">
+      <a href="index.html" class="text-sm font-bold flex items-center gap-2 hover:text-blue-500 transition"><span>←</span> กลับหน้าหลัก</a>
     </div>
   </nav>
 
-  <section class="py-5" id="app">
-    <div class="container text-center py-5 text-muted">
-      <div class="spinner-border text-primary" role="status"></div>
-      <p class="mt-3">กำลังโหลดข้อมูลรายละเอียด...</p>
-    </div>
-  </section>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+  <main id="app" class="max-w-6xl mx-auto px-4 py-10"></main>
 
   <script>
-    const API_URL = "https://manga-archive.onrender.com"; // ** เปลี่ยนเป็น URL ของคุณ **
-    const username = localStorage.getItem("username");
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("id");
+    const API_URL = "https://manga-archive.onrender.com";
+    const mangaId = new URLSearchParams(window.location.search).get("id");
 
-    // --- Dark Mode System ---
-    function applyDarkMode() {
-      const isDark = localStorage.getItem("dark") === "true";
-      document.documentElement.classList.toggle("dark", isDark);
-      const btn = document.getElementById("dark-toggle-btn");
-      if (btn) btn.innerHTML = isDark ? "☀️" : "🌙";
-    }
-    function toggleDark() {
-      localStorage.setItem("dark", !document.documentElement.classList.contains("dark"));
-      applyDarkMode();
-    }
-    applyDarkMode();
-
-    // --- Favorite Logic ---
-    async function toggleFavorite(mangaId) {
-      if (!username) {
-        alert("กรุณาเข้าสู่ระบบก่อนเพิ่มรายการโปรด");
-        window.location.href = "login.html";
-        return;
-      }
-
-      try {
-        const res = await fetch(`${API_URL}/favorite`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': localStorage.getItem('adminToken')
-          },
-          body: JSON.stringify({ username, mangaId })
-        });
-        const result = await res.json();
-        if (result.success) {
-          localStorage.setItem('myFavs', JSON.stringify(result.favorites));
-          renderPage(); // รีโหลดเพื่อเปลี่ยนสีหัวใจ
-        }
-      } catch (err) {
-        console.error("Favorite Error:", err);
-      }
-    }
-
-    // --- Render Page ---
     async function renderPage() {
-      if (!id) {
-        document.getElementById("app").innerHTML = `<div class='container text-center py-5'>❌ ไม่มี ID มังงะ</div>`;
-        return;
-      }
-
       try {
         const res = await fetch(`${API_URL}/manga`);
         const data = await res.json();
-        const manga = data.find((m) => m.id == id);
+        
+        // แก้ไข: ค้นหาโดยบังคับให้เป็น String ทั้งคู่ และเช็คทุกฟิลด์ ID ที่เป็นไปได้
+        const m = data.find(x => {
+            const idFromDB = (x.id || x._id || "").toString();
+            return idFromDB === mangaId?.toString();
+        });
 
-        if (!manga) {
-          document.getElementById("app").innerHTML = `<div class='container text-center py-5'>❌ ไม่เจอข้อมูลมังงะ</div>`;
-          return;
+        if (!m) {
+            document.getElementById("app").innerHTML = `
+                <div class="text-center py-20 opacity-50">
+                    <p class="text-xl mb-4">ไม่พบข้อมูลมังงะ (ID: ${mangaId})</p>
+                    <a href="index.html" class="text-blue-500 underline">กลับหน้าหลัก</a>
+                </div>`;
+            return;
         }
 
-        // ตรวจสอบว่าเป็นรายการโปรดหรือยัง
-        const myFavIds = JSON.parse(localStorage.getItem('myFavs')) || [];
-        const isFav = myFavIds.includes(manga.id.toString());
+        // --- Logic จัดการชื่อเรื่อง ---
+        let displayTitle = m.th_name || m.en_name || m.title;
+        let otherNames = [];
+        if (m.th_name && m.en_name) otherNames.push({ label: "English", value: m.en_name });
+        if (m.jp_name) otherNames.push({ label: "ต้นฉบับ", value: m.jp_name });
 
-        const tagsHtml = (manga.tags || []).map(tag => `<span class="tag-badge">${tag.trim()}</span>`).join("");
-        const transLink = manga.translator_link || manga.contact;
-        const translatorHTML = transLink
-          ? `<a href="${transLink}" target="_blank" class="translator-badge text-decoration-none">🌐 ${manga.translator || "ไม่ระบุ"}</a>`
-          : `<span class="translator-badge">🌐 ${manga.translator || "ไม่ระบุ"}</span>`;
+        // --- Logic ลิงก์ผู้แปล (เพิ่ม Link โปรไฟล์) ---
+        const translatorHtml = m.translator_link && m.translator_link.trim() !== "" 
+            ? `<a href="${m.translator_link}" target="_blank" class="font-semibold text-base text-blue-500 hover:text-blue-600 hover:underline flex items-center gap-1 transition-all">
+                ${m.translator || '-'}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+               </a>`
+            : `<span class="font-semibold text-base">${m.translator || '-'}</span>`;
 
-        // จัดการการแสดงชื่อ: ใช้ชื่อ ENG ถ้าไม่มีชื่อไทย
-        const displayTitle = manga.title || manga.en_name || manga.jp_name || "ไม่ระบุชื่อ";
-        
-        // ถ้าหัวข้อใหญ่เป็น ENG ก็ไม่แสดง ENG ในส่วนชื่ออื่นๆ
-        const showEngInSub = !(displayTitle === manga.en_name && manga.en_name);
+        const tagsHtml = (m.tags || []).map(t => `<span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 rounded-full text-[10px] font-bold uppercase tracking-wider">${t}</span>`).join("");
 
         document.getElementById("app").innerHTML = `
-            <div class="container">
-              <div class="detail-card">
-                <div class="row g-5">
-                  <div class="col-md-4 text-center">
-                    <div class="detail-cover-wrap" style="max-width: 350px; margin: 0 auto;">
-                      <img src="${manga.cover || ''}" class="detail-cover shadow rounded w-100" alt="${displayTitle}">
-                      <button type="button" class="btn btn-back btn-back-mobile btn-outline-light" onclick="history.back()">
-                        ← ย้อนกลับ
-                      </button>
-                    </div>
-                  </div>
-                  <div class="col-md-8">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                      <div>
-                        <h1 class="detail-title-th mb-2">${displayTitle}</h1>
-                        <div class="detail-title-sub-stack">
-                          ${manga.title ? `<div class="detail-title-sub text-muted">${manga.jp_name || ""}</div>
-                          ${showEngInSub ? `<div class="detail-title-sub text-muted">${manga.en_name || ""}</div>` : ""}` : `<div class="detail-title-sub text-muted">${manga.jp_name || ""}</div>`}
-                        </div>
-                      </div>
-                      <div class="detail-actions-top">
-                        <button type="button" class="btn btn-back btn-back-desktop btn-outline-secondary" onclick="history.back()">
-                          ← ย้อนกลับ
-                        </button>
-                        <button onclick="toggleFavorite('${manga.id}')" class="btn btn-fav ${isFav ? 'active' : ''}">
-                          ${isFav ? '❤️' : '🤍'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <p class="manga-desc text-muted">${manga.description || "ไม่มีเรื่องย่อ"}</p>
-                    <hr class="my-4" style="opacity: 0.1;">
-
-                    <ul class="info-list mb-4 list-unstyled">
-                      <li class="mb-2"><strong>Author:</strong> ${manga.author || "-"}</li>
-                      <li class="mb-2"><strong>Artist:</strong> ${manga.artist || "-"}</li>
-                      <li class="mb-2"><strong>Translator:</strong> ${translatorHTML}</li>
-                    </ul>
-
-                    <div class="mb-4">${tagsHtml}</div>
-
-                    <div class="d-flex flex-wrap gap-3">
-                      ${manga.thai_url ? `<a href="${manga.thai_url}" class="btn btn-primary px-4 py-2" target="_blank">📖 อ่านแปลไทย</a>` : ""}
-                      ${manga.eng_url ? `<a href="${manga.eng_url}" class="btn btn-outline-secondary px-4 py-2" target="_blank">📖 อ่านแปล ENG</a>` : ""}
-                      ${manga.original_url ? `<a href="${manga.original_url}" class="btn btn-outline-secondary px-4 py-2" target="_blank">🌐 ต้นฉบับ</a>` : ""}
-                    </div>
-                  </div>
+          <div class="flex flex-col lg:flex-row gap-12">
+            <div class="w-full lg:w-80 flex-shrink-0">
+              <div class="sticky top-24">
+                <img src="${m.cover}" class="w-full rounded-2xl shadow-2xl border dark:border-slate-800 mb-6">
+                
+                <div class="grid grid-cols-1 gap-3">
+                  ${m.thai_url ? `
+                  <a href="${m.thai_url}" target="_blank" class="flex items-center justify-center gap-2 w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-500/30 hover:scale-[1.02] active:scale-95 transition-all">
+                    <span class="text-xl">🇹🇭</span> อ่านแปลไทย
+                  </a>` : ""}
+                  
+                  ${m.eng_url ? `
+                  <a href="${m.eng_url}" target="_blank" class="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all">
+                    <span class="text-lg">🇺🇸</span> อ่านแปล ENG
+                  </a>` : ""}
+                  
+                  ${m.original_url ? `
+                  <a href="${m.original_url}" target="_blank" class="flex items-center justify-center gap-2 w-full py-3 bg-slate-200 dark:bg-slate-800 rounded-xl font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-all">
+                    <span class="text-lg">🌐</span> ต้นฉบับ (Raw)
+                  </a>` : ""}
                 </div>
               </div>
-            </div>`;
+            </div>
+
+            <div class="flex-1">
+              <h1 class="text-4xl font-black mb-4 leading-tight">${displayTitle}</h1>
+              <div class="flex flex-wrap gap-2 mb-8">${tagsHtml}</div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                <div class="space-y-4">
+                   <div class="flex items-start gap-4 text-sm">
+                      <span class="w-24 opacity-50 font-bold text-[10px] uppercase tracking-widest pt-1">Author</span>
+                      <span class="font-semibold text-base">${m.author || '-'}</span>
+                   </div>
+                   <div class="flex items-start gap-4 text-sm">
+                      <span class="w-24 opacity-50 font-bold text-[10px] uppercase tracking-widest pt-1">Artist</span>
+                      <span class="font-semibold text-base">${m.artist || '-'}</span>
+                   </div>
+                   <div class="flex items-start gap-4 text-sm">
+                      <span class="w-24 opacity-50 font-bold text-[10px] uppercase tracking-widest pt-1">Translator</span>
+                      ${translatorHtml}
+                   </div>
+                </div>
+
+                <div class="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                  <p class="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] mb-2">Other Names</p>
+                  ${otherNames.map(n => `
+                    <div class="flex gap-3 text-sm">
+                      <span class="opacity-40 min-w-[70px] text-xs font-medium">${n.label}:</span>
+                      <span class="font-medium leading-tight">${n.value}</span>
+                    </div>
+                  `).join('')}
+                  ${otherNames.length === 0 ? '<p class="text-xs opacity-30 italic font-light text-center py-2">ไม่มีข้อมูลชื่ออื่น</p>' : ''}
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                  <span class="w-1.5 h-6 bg-blue-600 rounded-full"></span> เรื่องย่อ
+                </h2>
+                <div class="p-6 bg-white/50 dark:bg-slate-900/50 rounded-3xl border border-slate-100 dark:border-slate-800/50">
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-line text-lg">
+                      ${m.description || "ยังไม่มีข้อมูลเรื่องย่อในขณะนี้"}
+                    </p>
+                </div>
+              </div>
+
+              <div class="mt-16 pt-8 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                 <button onclick="window.location.href='admin.html?editId=${m.id || m._id}'" class="text-[10px] font-bold opacity-20 hover:opacity-100 transition-all uppercase tracking-widest px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800">
+                    Edit Data
+                 </button>
+              </div>
+            </div>
+          </div>
+        `;
       } catch (err) {
-        document.getElementById("app").innerHTML = `<div class="container text-center py-5 text-danger">❌ โหลดข้อมูลล้มเหลว</div>`;
+        console.error(err);
+        document.getElementById("app").innerHTML = `<div class="text-center py-20 text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>`;
       }
     }
-
     renderPage();
   </script>
-
-  <style>
-    /* เพิ่มเติม CSS สำหรับปุ่ม Favorite */
-    .btn-fav {
-      font-size: 1.5rem;
-      background: var(--bg-card);
-      border: 1px solid #ddd;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-
-    .btn-fav:hover {
-      transform: scale(1.1);
-    }
-
-    .btn-fav.active {
-      border-color: #ff4757;
-    }
-
-    html.dark .btn-fav {
-      border-color: #444;
-    }
-  </style>
-  <footer class="py-4 mt-5 border-top text-center">
-    <div class="container">
-      <p class="text-muted mb-1">© 2024 Manga Archive - Developed by Akie</p>
-      <a href="about.html" class="text-decoration-none text-secondary small">เกี่ยวกับโปรเจกต์นี้</a>
-    </div>
-  </footer>
 </body>
-
 </html>

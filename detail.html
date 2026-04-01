@@ -45,7 +45,7 @@
         let displayTitle = m.th_name || m.en_name || m.title;
         let otherNames = [];
         if (m.th_name && m.en_name) otherNames.push({ label: "English", value: m.en_name });
-        if (m.jp_name) otherNames.push({ label: "ต้นฉบับ", value: m.jp_name });
+        if (m.jp_name) otherNames.push({ label: "Raw", value: m.jp_name });
 
         // --- Logic ลิงก์ผู้แปล (เพิ่ม Link โปรไฟล์) ---
         const translatorHtml = m.translator_link && m.translator_link.trim() !== "" 

@@ -166,6 +166,8 @@
   // 2. ฟังก์ชันส่งข้อมูล (Add / Update)
   document.getElementById("manga-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    const token = localStorage.getItem("adminToken");
+    if (!token) return alert("กรุณาเข้าสู่ระบบก่อน");
 
     const mangaData = {
       title: document.getElementById("title").value,
@@ -182,35 +184,28 @@
       original_url: document.getElementById("original_url").value,
       tags: document.getElementById("tags").value.split(",").map(t => t.trim()).filter(t => t),
       description: document.getElementById("description").value,
-      updated_at: new Date().toISOString() // อัปเดตเวลาเสมอ
+      updated_at: new Date().toISOString()
     };
 
-    // เลือก URL และ Method ให้ถูกตัว
-    // ถ้าแก้ไข ใช้ PUT ไปที่ /api/manga/:id | ถ้าเพิ่มใหม่ ใช้ POST ไปที่ /add
-    const finalUrl = currentEditId ? `${API_URL}/api/manga/${currentEditId}` : `${API_URL}/add`;
-    const finalMethod = currentEditId ? "PUT" : "POST";
+    const isEdit = currentEditId && currentEditId !== "null";
+    const finalUrl = isEdit ? `${API_URL}/api/manga/${currentEditId}` : `${API_URL}/add`;
+    const finalMethod = isEdit ? "PUT" : "POST";
 
     try {
       const res = await fetch(finalUrl, {
         method: finalMethod,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": localStorage.getItem("adminToken") // อย่าลืมเรื่อง Token
-        },
+        headers: { "Content-Type": "application/json", "Authorization": token },
         body: JSON.stringify(mangaData),
       });
 
       if (res.ok) {
-        alert("✅ บันทึกข้อมูลสำเร็จ!");
+        alert("✅ บันทึกสำเร็จ!");
         location.href = "index.html";
       } else {
-        const errData = await res.json();
-        alert("❌ ผิดพลาด: " + (errData.message || "ไม่สามารถบันทึกได้"));
+        alert("❌ บันทึกไม่สำเร็จ กรุณาลองใหม่");
       }
-    } catch (error) {
-      alert("❌ ไม่สามารถเชื่อมต่อกับ Server ได้");
-    }
-  });
+    } catch (error) { alert("❌ เชื่อมต่อ Server ไม่ได้"); }
+});
 </script>
 </body>
 

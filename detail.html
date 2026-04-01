@@ -29,21 +29,17 @@
       try {
         const res = await fetch(`${API_URL}/manga`);
         const data = await res.json();
+        // หา ID แบบยืดหยุ่น (รองรับ String/Number และ id/_id)
+        const m = data.find(x => (x.id || x._id || "").toString() === mangaId?.toString());
         
-        // แก้ไข: ค้นหาโดยบังคับให้เป็น String ทั้งคู่ และเช็คทุกฟิลด์ ID ที่เป็นไปได้
-        const m = data.find(x => {
-            const idFromDB = (x.id || x._id || "").toString();
-            return idFromDB === mangaId?.toString();
-        });
-
         if (!m) {
-            document.getElementById("app").innerHTML = `
-                <div class="text-center py-20 opacity-50">
-                    <p class="text-xl mb-4">ไม่พบข้อมูลมังงะ (ID: ${mangaId})</p>
-                    <a href="index.html" class="text-blue-500 underline">กลับหน้าหลัก</a>
-                </div>`;
-            return;
+                document.getElementById("app").innerHTML = `<div class="text-center py-20 opacity-50">ไม่พบข้อมูลมังงะ (ID: ${mangaId})</div>`;
+                return;
         }
+        
+        // [SAFETY] กรอง XSS ป้องกันการรันโค้ดแปลกๆ
+        const cleanDesc = (m.description || "ยังไม่มีข้อมูลเรื่องย่อในขณะนี้")
+        .replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
         // --- Logic จัดการชื่อเรื่อง ---
         let displayTitle = m.th_name || m.en_name || m.title;

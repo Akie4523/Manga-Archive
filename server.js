@@ -34,9 +34,15 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 // --- 3. Auth Middleware ---
 const auth = (req, res, next) => {
-    // เช็คกุญแจใน Header 'Authorization'
-    if (req.headers['authorization'] === process.env.SECRET_TOKEN) next();
-    else res.status(403).json({ message: "Forbidden: กุญแจไม่ถูกต้อง" });
+    // ปล่อยให้ OPTIONS ผ่านไปได้ (สำหรับ CORS)
+    if (req.method === 'OPTIONS') return next();
+
+    const token = req.headers['authorization'];
+    if (token === process.env.SECRET_TOKEN) {
+        next();
+    } else {
+        res.status(403).json({ message: "Forbidden: กุญแจไม่ถูกต้อง" });
+    }
 };
 
 // Login
@@ -77,9 +83,17 @@ app.get("/api/manga/:id", async (req, res) => {
 
 // เพิ่มมังงะใหม่
 app.post("/add", auth, async (req, res) => {
-    const newManga = new Manga(req.body);
-    await newManga.save();
-    res.json({ message: "เพิ่มสำเร็จ!" });
+    try {
+        const mangaData = req.body;
+        // กันเหนียว: ถ้าไม่มี id ให้สร้างจาก Timestamp
+        if (!mangaData.id) mangaData.id = Date.now().toString();
+        
+        const newManga = new Manga(mangaData);
+        await newManga.save();
+        res.json({ message: "เพิ่มสำเร็จ!" });
+    } catch (err) {
+        res.status(500).json({ message: "ไม่สามารถเพิ่มข้อมูลได้", error: err.message });
+    }
 });
 
 // แก้ไขข้อมูลมังงะ
@@ -103,14 +117,21 @@ app.put('/api/manga/:id', auth, async (req, res) => {
 
 // ลบมังงะ
 app.delete("/delete/:id", auth, async (req, res) => {
-    // ลบโดยเช็คทั้ง id และ _id
-    let result = await Manga.findByIdAndDelete(req.params.id).catch(() => null);
-    if (!result) {
-        result = await Manga.deleteOne({ id: req.params.id });
+    try {
+        const { id } = req.params;
+        let result = await Manga.findByIdAndDelete(id).catch(() => null);
+        if (!result) {
+            result = await Manga.deleteOne({ id: id });
+        }
+        
+        if (result.deletedCount === 0 && !result._id) {
+            return res.status(404).json({ message: "ไม่พบข้อมูลที่ต้องการลบ" });
+        }
+        res.json({ message: "ลบข้อมูลเรียบร้อยแล้ว!" });
+    } catch (err) {
+        res.status(500).json({ message: "เกิดข้อผิดพลาดในการลบ" });
     }
-    res.json({ message: "ลบแล้ว!" });
 });
-
 // ระบบ Favorite
 app.post("/favorite", auth, async (req, res) => {
     const { username, mangaId } = req.body;
@@ -125,22 +146,37 @@ app.post("/favorite", auth, async (req, res) => {
 
 // --- 5. Serving Frontend (จัดการหน้าเว็บ) ---
 
-// บอกให้ Express รู้จักไฟล์ HTML, CSS, JS
+// 1. บอกให้ Express รู้จักไฟล์ Static (CSS, JS, Images)
 app.use(express.static(__dirname));
 
-// เมื่อเข้าหน้าแรก
+// 2. เมื่อเข้าหน้าแรก
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ดักจับหน้า .html อื่นๆ (ต้องอยู่ล่างสุดของ API)
+// 3. จัดการ Routing ให้เข้าหน้าเว็บแบบไม่ต้องพิมพ์ .html
 app.get('/:page', (req, res) => {
-    // ป้องกันไม่ให้ไปดึงไฟล์ที่ไม่มีอยู่จริงจนเกิด Error
-    if (req.params.page.includes('.')) {
-        res.sendFile(path.join(__dirname, req.params.page));
-    } else {
-        res.status(404).send("Page not found");
+    const page = req.params.page;
+
+    // กันคนแอบเข้าถึงไฟล์สำคัญ (เช่น server.js, .env)
+    const forbiddenFiles = ['server.js', 'package.json', 'package-lock.json', '.env'];
+    if (forbiddenFiles.includes(page) || page.includes('..')) {
+        return res.status(403).send("Access Denied");
     }
+
+    // ถ้ามีการขอไฟล์ที่มีนามสกุลอยู่แล้ว (เช่น style.css, script.js)
+    if (page.includes('.')) {
+        return res.sendFile(path.join(__dirname, page));
+    }
+
+    // ถ้าขอหน้าเว็บแบบไม่มีนามสกุล (เช่น /admin) ให้ลองเติม .html ให้
+    const filePath = path.join(__dirname, page + '.html');
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            // ถ้าหาไฟล์ไม่เจอจริงๆ ค่อยส่ง 404
+            res.status(404).send("ไม่พบหน้านี้ในระบบ (404 Not Found)");
+        }
+    });
 });
 
 // --- 6. Start Server ---

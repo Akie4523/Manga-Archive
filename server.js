@@ -145,6 +145,7 @@ app.get('/api/fetch-chapters', async (req, res) => {
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
+                '--single-process', // สำหรับ Server สเปกต่ำ
                 '--single-process'
             ]
         });

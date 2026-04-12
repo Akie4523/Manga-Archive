@@ -139,7 +139,8 @@ app.get('/api/fetch-chapters', async (req, res) => {
     try {
         browser = await puppeteer.launch({
             headless: "new",
-            executablePath: chromePath, // บรรทัดนี้สำคัญที่สุด
+            // ไม่ต้องระบุ Path ตายตัว ให้ Puppeteer หาเอง หรือดึงจาก Env
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined, 
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',

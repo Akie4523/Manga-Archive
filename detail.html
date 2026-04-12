@@ -122,7 +122,9 @@
         if (otherNames.length === 0) infoRight.innerHTML += `<p class="text-xs opacity-30 italic font-light text-center py-2">ไม่มีข้อมูลชื่ออื่น</p>`;
 
         const linksContainer = document.getElementById("links-container");
-        if (m.thai_url) linksContainer.innerHTML += `<a href="${m.thai_url}" target="_blank" class="flex items-center justify-center gap-2 w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-bold shadow-lg transition hover:scale-[1.02] active:scale-95">🇹🇭 อ่านแปลไทย</a>`;
+        if (m.thai_url) {
+        const isDirect = m.thai_url.includes('facebook.com') || m.thai_url.includes('nekopost.net');
+        const target = isDirect ? m.thai_url : `chapters.html?url=${encodeURIComponent(m.thai_url)}&id=${m.id}`;linksContainer.innerHTML += `<a href="${target}" class="flex items-center justify-center w-full py-4 bg-orange-600 text-white rounded-xl font-bold">🇹🇭 อ่านแปลไทย</a>`;}
         if (m.eng_url) linksContainer.innerHTML += `<a href="${m.eng_url}" target="_blank" class="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg transition hover:scale-[1.02] active:scale-95">🇺🇸 อ่านแปล ENG</a>`;
         if (m.original_url) linksContainer.innerHTML += `<a href="${m.original_url}" target="_blank" class="flex items-center justify-center gap-2 w-full py-3 bg-slate-200 dark:bg-slate-800 rounded-xl font-bold transition hover:scale-[1.02] active:scale-95">🌐 ต้นฉบับ (Raw)</a>`;
 

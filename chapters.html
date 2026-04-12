@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapters - Manga Archive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+        if (localStorage.getItem("dark") === "true") document.documentElement.classList.add("dark");
+    </script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen font-['Noto_Sans_Thai']">
+    <nav class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-4 border-b dark:border-slate-800">
+        <div class="max-w-xl mx-auto flex items-center gap-4">
+            <button onclick="history.back()" class="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full">←</button>
+            <h1 class="font-bold">รายการตอน</h1>
+        </div>
+    </nav>
+    <main class="max-w-xl mx-auto p-4">
+        <div id="loader" class="text-center py-20 opacity-50 italic">กำลังเจาะระบบ Cloudflare เพื่อดึงข้อมูล...</div>
+        <div id="chapter-list" class="space-y-2"></div>
+    </main>
+    <script>
+        const url = new URLSearchParams(window.location.search).get('url');
+        async function fetchChapters() {
+            try {
+                const res = await fetch(`/api/fetch-chapters?url=${encodeURIComponent(url)}`);
+                const data = await res.json();
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('chapter-list').innerHTML = data.chapters.map(ch => `
+                    <a href="reader.html?url=${encodeURIComponent(ch.url)}" class="block p-4 bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-xl hover:border-blue-500 transition font-medium">
+                        ${ch.title}
+                    </a>
+                `).reverse().join('');
+            } catch (e) { document.getElementById('loader').innerText = "เกิดข้อผิดพลาดในการดึงข้อมูล"; }
+        }
+        fetchChapters();
+    </script>
+</body>
+</html>

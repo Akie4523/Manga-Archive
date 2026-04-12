@@ -250,5 +250,16 @@
 
     init();
   </script>
+  <div id="warning-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/90 backdrop-blur-md p-4 text-white">
+    <div class="bg-slate-900 max-w-md w-full p-8 rounded-3xl border border-slate-800 shadow-2xl text-center">
+        <h2 class="text-2xl font-black mb-4">ประกาศ</h2>
+        <p class="text-sm opacity-70 mb-6">เว็บนี้ไม่มีการเก็บข้อมูลรูปในเซิร์ฟเวอร์ มีเพียงแค่ปกเท่านั้น ข้อมูลเนื้อหาทั้งหมดถูกดึงจากแหล่งภายนอกหรือพาไปยังเว็ปภายนอก</p>
+        <button onclick="acceptWarning()" class="w-full py-3 bg-blue-600 rounded-xl font-bold">รับทราบ</button>
+    </div>
+</div>
+<script>
+    function acceptWarning() { localStorage.setItem("warn", "1"); document.getElementById("warning-modal").classList.add("hidden"); }
+    if (!localStorage.getItem("warn")) document.getElementById("warning-modal").classList.remove("hidden");
+</script>
 </body>
 </html>

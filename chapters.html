@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chapters - Manga Archive</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -10,30 +11,94 @@
     </script>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen font-['Noto_Sans_Thai']">
+    
     <nav class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-4 border-b dark:border-slate-800">
         <div class="max-w-xl mx-auto flex items-center gap-4">
             <button onclick="history.back()" class="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full">←</button>
             <h1 class="font-bold">รายการตอน</h1>
         </div>
     </nav>
+
     <main class="max-w-xl mx-auto p-4">
         <div id="loader" class="text-center py-20 opacity-50 italic">กำลังเจาะระบบ Cloudflare เพื่อดึงข้อมูล...</div>
+        
         <div id="chapter-list" class="space-y-2"></div>
+
+        <div id="error-display" class="hidden text-center py-10 px-6 bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl shadow-sm">
+            <div class="text-4xl mb-4">⚠️</div>
+            <h2 class="text-lg font-bold mb-2">ดึงข้อมูลไม่สำเร็จ</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">ไม่สามารถดึงข้อมูลตอนมังงะได้ (อาจติดการป้องกันของเว็บต้นทาง)</p>
+            <div class="flex flex-col gap-2">
+                <button onclick="confirmExit(url)" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition">
+                    ไปยังหน้าเว็บต้นทาง
+                </button>
+                <button onclick="window.location.href='/'" class="w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl font-medium transition">
+                    กลับหน้าหลัก
+                </button>
+            </div>
+        </div>
     </main>
+
+    <div id="exit-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 shadow-2xl border dark:border-slate-800">
+            <h3 class="text-xl font-bold mb-2">กำลังออกจากเว็บไซต์</h3>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">
+                ระบบจะพาคุณไปยังหน้าเว็บต้นทางข้างนอก: <br>
+                <span id="target-link" class="text-blue-500 break-all underline"></span>
+            </p>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closeExitModal()" class="py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl font-medium">ยกเลิก</button>
+                <a id="final-link" href="#" class="py-2.5 bg-blue-600 text-white text-center rounded-xl font-medium">ตกลง ไปเลย</a>
+            </div>
+        </div>
+    </div>
+
     <script>
         const url = new URLSearchParams(window.location.search).get('url');
+        
         async function fetchChapters() {
+            if (!url) {
+                showError();
+                return;
+            }
+
             try {
                 const res = await fetch(`/api/fetch-chapters?url=${encodeURIComponent(url)}`);
                 const data = await res.json();
+                
                 document.getElementById('loader').classList.add('hidden');
-                document.getElementById('chapter-list').innerHTML = data.chapters.map(ch => `
-                    <a href="reader.html?url=${encodeURIComponent(ch.url)}" class="block p-4 bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-xl hover:border-blue-500 transition font-medium">
-                        ${ch.title}
-                    </a>
-                `).reverse().join('');
-            } catch (e) { document.getElementById('loader').innerText = "เกิดข้อผิดพลาดในการดึงข้อมูล"; }
+
+                if (data.success && data.chapters && data.chapters.length > 0) {
+                    document.getElementById('chapter-list').innerHTML = data.chapters.map(ch => `
+                        <a href="reader.html?url=${encodeURIComponent(ch.url)}" class="block p-4 bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-xl hover:border-blue-500 transition font-medium">
+                            ${ch.title}
+                        </a>
+                    `).reverse().join('');
+                } else {
+                    showError();
+                }
+            } catch (e) { 
+                showError();
+            }
         }
+
+        function showError() {
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('chapter-list').classList.add('hidden');
+            document.getElementById('error-display').classList.remove('hidden');
+        }
+
+        // ระบบ Modal แจ้งเตือนออกจากเว็บ
+        function confirmExit(targetUrl) {
+            document.getElementById('target-link').innerText = targetUrl;
+            document.getElementById('final-link').href = targetUrl;
+            document.getElementById('exit-modal').classList.remove('hidden');
+        }
+
+        function closeExitModal() {
+            document.getElementById('exit-modal').classList.add('hidden');
+        }
+
         fetchChapters();
     </script>
 </body>

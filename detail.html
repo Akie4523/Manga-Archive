@@ -21,6 +21,25 @@
 
   <main id="app" class="max-w-6xl mx-auto px-4 py-10"></main>
 
+  <div id="exit-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-900 w-full max-sm:max-w-xs max-w-sm rounded-2xl p-6 shadow-2xl border dark:border-slate-800">
+        <div class="text-3xl mb-4">🚀</div>
+        <h3 class="text-xl font-bold mb-2">กำลังออกจากเว็บไซต์</h3>
+        <p class="text-slate-500 dark:text-slate-400 text-sm mb-6 leading-relaxed">
+            ระบบกำลังจะพาคุณไปยังหน้าเว็บต้นทางข้างนอก: <br>
+            <span id="target-link" class="text-blue-500 break-all font-medium underline"></span>
+        </p>
+        <div class="grid grid-cols-2 gap-3">
+            <button onclick="closeExitModal()" class="py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-medium transition text-sm">
+                ยกเลิก
+            </button>
+            <a id="final-link" href="#" class="py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-xl font-medium transition shadow-md shadow-blue-500/20 text-sm">
+                ตกลง ไปเลย
+            </a>
+        </div>
+    </div>
+  </div>
+
   <script>
     const API_URL = "https://manga-archive.onrender.com";
     const mangaId = new URLSearchParams(window.location.search).get("id");
@@ -30,6 +49,21 @@
       return str.replace(/[&<>"']/g, function(m) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
       });
+    }
+
+    // ฟังก์ชันจัดการ Modal
+    function confirmExit(targetUrl) {
+        document.getElementById('target-link').innerText = targetUrl;
+        document.getElementById('final-link').href = targetUrl;
+        document.getElementById('exit-modal').classList.remove('hidden');
+    }
+
+    function closeExitModal() {
+        document.getElementById('exit-modal').classList.add('hidden');
+    }
+
+    window.onclick = function(event) {
+        if (event.target == document.getElementById('exit-modal')) closeExitModal();
     }
 
     async function renderPage() {
@@ -50,7 +84,6 @@
         if (m.th_name && m.en_name) otherNames.push({ label: "English", value: m.en_name });
         if (m.jp_name) otherNames.push({ label: "Raw", value: m.jp_name });
 
-        // โครงสร้างใหม่ที่แก้ปัญหา UI พัง
         document.getElementById("app").innerHTML = `
           <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
             <div class="w-full lg:w-72 flex-shrink-0">
@@ -123,10 +156,13 @@
 
         const linksContainer = document.getElementById("links-container");
         if (m.thai_url) {
-        const isDirect = m.thai_url.includes('facebook.com') || m.thai_url.includes('nekopost.net');
-        const target = isDirect ? m.thai_url : `chapters.html?url=${encodeURIComponent(m.thai_url)}&id=${m.id}`;linksContainer.innerHTML += `<a href="${target}" class="flex items-center justify-center w-full py-4 bg-orange-600 text-white rounded-xl font-bold">🇹🇭 อ่านแปลไทย</a>`;}
-        if (m.eng_url) linksContainer.innerHTML += `<a href="${m.eng_url}" target="_blank" class="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg transition hover:scale-[1.02] active:scale-95">🇺🇸 อ่านแปล ENG</a>`;
-        if (m.original_url) linksContainer.innerHTML += `<a href="${m.original_url}" target="_blank" class="flex items-center justify-center gap-2 w-full py-3 bg-slate-200 dark:bg-slate-800 rounded-xl font-bold transition hover:scale-[1.02] active:scale-95">🌐 ต้นฉบับ (Raw)</a>`;
+            const isDirect = m.thai_url.includes('facebook.com') || m.thai_url.includes('nekopost.net');
+            const target = isDirect ? m.thai_url : `chapters.html?url=${encodeURIComponent(m.thai_url)}&id=${m.id}`;
+            const onclickAttr = isDirect ? `onclick="event.preventDefault(); confirmExit('${m.thai_url}')"` : "";
+            linksContainer.innerHTML += `<a href="${target}" ${onclickAttr} class="flex items-center justify-center w-full py-4 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold shadow-lg transition hover:scale-[1.02] active:scale-95 text-center px-4">🇹🇭 อ่านแปลไทย</a>`;
+        }
+        if (m.eng_url) linksContainer.innerHTML += `<a href="#" onclick="event.preventDefault(); confirmExit('${m.eng_url}')" class="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition hover:scale-[1.02] active:scale-95 text-center px-4">🇺🇸 อ่านแปล ENG</a>`;
+        if (m.original_url) linksContainer.innerHTML += `<a href="#" onclick="event.preventDefault(); confirmExit('${m.original_url}')" class="flex items-center justify-center gap-2 w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl font-bold transition hover:scale-[1.02] active:scale-95 text-center px-4">🌐 ต้นฉบับ (Raw)</a>`;
 
         document.getElementById("edit-btn").onclick = () => {
           window.location.href = `admin.html?editId=${m.id || m._id}`;

@@ -61,12 +61,12 @@ const puppeteerOptions = {
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-zygote',
-        '--single-process'
+        '--disable-blink-features=AutomationControlled', // ปิดการส่งสัญญาณว่าเป็น Bot
+        '--disable-infobars',
+        '--window-size=1280,720',
+        '--lang=en-US,en;q=0.9'
     ]
 };
-
 // ฟังก์ชันช่วยเลื่อนหน้าจอเพื่อให้เนื้อหาโหลดครบ
 async function autoScroll(page) {
     await page.evaluate(async () => {
@@ -128,59 +128,61 @@ app.get('/api/fetch-chapters', async (req, res) => {
 
     let browser;
     try {
-        console.log(`🚀 กำลังดึงข้อมูล: ${url}`);
+        console.log(`🚀 เริ่มภารกิจดึงข้อมูล: ${url}`);
         browser = await puppeteer.launch(puppeteerOptions);
         const page = await browser.newPage();
         
-        // ใช้ User Agent ที่ดูเหมือนคนจริงๆ มากขึ้น
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+        // กำหนด User Agent ให้เหมือน Chrome บน Windows จริงๆ
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36');
         
-        // ไปยัง URL
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        // ลบคุณสมบัติ navigator.webdriver เพื่อหลบการตรวจจับ
+        await page.evaluateOnNewDocument(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => false });
+        });
 
-        // เช็ก Page Title เพื่อดูว่าติด Cloudflare ไหม
-        const titlePage = await page.title();
-        console.log(`📄 Page Title: ${titlePage}`);
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-        // เลื่อนหน้าจอเพื่อให้เนื้อหาโหลด (Fluxtoon มีปุ่ม "ดูเพิ่มเติม" และโหลดแบบ Dynamic)
+        // --- ระบบรอ Cloudflare ปลดล็อค ---
+        let currentTitle = await page.title();
+        let retry = 0;
+        while (currentTitle.includes("Just a moment") && retry < 10) {
+            console.log(`⏳ ติดด่าน Cloudflare... กำลังรอรอบที่ ${retry + 1}`);
+            await new Promise(r => setTimeout(r, 2000)); // รอทีละ 2 วินาที
+            currentTitle = await page.title();
+            retry++;
+        }
+
+        console.log(`📄 Page Title ล่าสุด: ${currentTitle}`);
+
+        if (currentTitle.includes("Just a moment")) {
+            throw new Error("Cloudflare Blocked: ไม่สามารถผ่านด่านตรวจได้");
+        }
+
         await autoScroll(page);
-        await new Promise(r => setTimeout(r, 1500)); // รอให้ UI อัปเดต
+        await new Promise(r => setTimeout(r, 1000));
 
         const chapters = await page.evaluate(() => {
             const list = [];
-            // รวม Selector จากที่คุณส่องมา (.grid a) และของเว็บอื่นๆ
-            const selectors = [
-                '.grid.grid-cols-2.gap-2 a', 
-                '.wp-manga-chapter a', 
-                '.chapter-link a', 
-                '#chapterlist a', 
-                '.num-a', 
-                '.epsItem a'
-            ];
+            // ใช้ Selector ที่กว้างขึ้นเพื่อให้ครอบคลุม
+            const elements = document.querySelectorAll('a[href*="/content/"], a[href*="/chapter/"], .grid a');
             
-            selectors.forEach(s => {
-                document.querySelectorAll(s).forEach(el => {
-                    const href = el.href;
-                    // คัดกรองเอาเฉพาะลิงก์ที่น่าจะเป็นตอนมังงะ
-                    if (href && (href.includes('/content/') || href.includes('/chapter/') || /\/\d+$/.test(href))) {
-                        const txt = el.innerText.trim().replace(/\s+/g, ' ');
-                        if (txt && txt.length > 0) {
-                            list.push({ title: txt, url: href });
-                        }
-                    }
-                });
+            elements.forEach(el => {
+                const href = el.href;
+                const text = el.innerText.trim();
+                // กรองเฉพาะลิงก์ที่น่าจะเป็นตอน (มีตัวเลข หรือคำว่า chapter)
+                if (href && text && (/\d+/.test(text) || href.includes('chapter'))) {
+                    list.push({ title: text.replace(/\s+/g, ' '), url: href });
+                }
             });
-
-            // ลบรายการซ้ำ
             return list.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
         });
 
-        console.log(`✅ พบทั้งหมด ${chapters.length} ตอน`);
+        console.log(`✅ ดึงสำเร็จ: ${chapters.length} ตอน`);
         res.json({ success: true, chapters });
 
     } catch (err) {
         console.error("❌ Scraper Error:", err.message);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "ติดด่านป้องกันของเว็บต้นทาง", details: err.message });
     } finally {
         if (browser) await browser.close();
     }

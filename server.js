@@ -130,7 +130,7 @@ app.post("/favorite", auth, async (req, res) => {
 });
 
 // --- 7. API Routes (ระบบ Scraper ใหม่) ---
-
+const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH;
 app.get('/api/fetch-chapters', async (req, res) => {
     const { url } = req.query;
     if (!isWhitelisted(url)) return res.status(403).json({ error: "Access Denied" });
@@ -139,7 +139,7 @@ app.get('/api/fetch-chapters', async (req, res) => {
     try {
         browser = await puppeteer.launch({
             headless: "new",
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome',
+            executablePath: chromePath, // บรรทัดนี้สำคัญที่สุด
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',

@@ -67,12 +67,12 @@ const puppeteerOptions = {
     ]
 };
 
-// ฟังก์ชันช่วยเลื่อนหน้าจอ (Auto Scroll) เพื่อให้เนื้อหาโหลดครบ
+// ฟังก์ชันช่วยเลื่อนหน้าจอเพื่อให้เนื้อหาโหลดครบ
 async function autoScroll(page) {
     await page.evaluate(async () => {
         await new Promise((resolve) => {
             let totalHeight = 0;
-            let distance = 100;
+            let distance = 150;
             let timer = setInterval(() => {
                 let scrollHeight = document.body.scrollHeight;
                 window.scrollBy(0, distance);
@@ -86,7 +86,7 @@ async function autoScroll(page) {
     });
 }
 
-// --- 6. API Routes (ระบบจัดการข้อมูล) ---
+// --- 6. API Routes (ข้อมูลทั่วไป) ---
 app.get("/ping", (req, res) => res.status(200).send("OK"));
 
 app.post('/login', async (req, res) => {
@@ -131,20 +131,24 @@ app.get('/api/fetch-chapters', async (req, res) => {
         console.log(`🚀 กำลังดึงข้อมูล: ${url}`);
         browser = await puppeteer.launch(puppeteerOptions);
         const page = await browser.newPage();
+        
+        // ใช้ User Agent ที่ดูเหมือนคนจริงๆ มากขึ้น
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
         
-        // รอแค่โครงสร้างพื้นฐานมาก็พอ (เร็วกว่า)
+        // ไปยัง URL
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-        // รัน Auto Scroll เพื่อให้ตอนที่ซ่อนอยู่โหลดออกมา
-        await autoScroll(page);
+        // เช็ก Page Title เพื่อดูว่าติด Cloudflare ไหม
+        const titlePage = await page.title();
+        console.log(`📄 Page Title: ${titlePage}`);
 
-        // รอสักครู่ให้ Script หลังบ้านของเว็บต้นทางทำงาน
-        await new Promise(r => setTimeout(r, 1000));
+        // เลื่อนหน้าจอเพื่อให้เนื้อหาโหลด (Fluxtoon มีปุ่ม "ดูเพิ่มเติม" และโหลดแบบ Dynamic)
+        await autoScroll(page);
+        await new Promise(r => setTimeout(r, 1500)); // รอให้ UI อัปเดต
 
         const chapters = await page.evaluate(() => {
             const list = [];
-            // รวม Selector ทั้งแบบเก่า และแบบใหม่ของ Fluxtoon (.grid a)
+            // รวม Selector จากที่คุณส่องมา (.grid a) และของเว็บอื่นๆ
             const selectors = [
                 '.grid.grid-cols-2.gap-2 a', 
                 '.wp-manga-chapter a', 
@@ -156,17 +160,18 @@ app.get('/api/fetch-chapters', async (req, res) => {
             
             selectors.forEach(s => {
                 document.querySelectorAll(s).forEach(el => {
-                    // กรองเฉพาะที่มีลิงก์และเป็นลิงก์ตอนจริงๆ
-                    if (el.href && (el.href.includes('/content/') || el.href.includes('/chapter/'))) {
-                        const title = el.innerText.trim().replace(/\s+/g, ' ');
-                        if (title) {
-                            list.push({ title, url: el.href });
+                    const href = el.href;
+                    // คัดกรองเอาเฉพาะลิงก์ที่น่าจะเป็นตอนมังงะ
+                    if (href && (href.includes('/content/') || href.includes('/chapter/') || /\/\d+$/.test(href))) {
+                        const txt = el.innerText.trim().replace(/\s+/g, ' ');
+                        if (txt && txt.length > 0) {
+                            list.push({ title: txt, url: href });
                         }
                     }
                 });
             });
 
-            // ลบรายการที่ซ้ำกัน
+            // ลบรายการซ้ำ
             return list.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
         });
 
@@ -192,7 +197,7 @@ app.get('/api/fetch-images', async (req, res) => {
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
         
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        await autoScroll(page); // สำหรับอ่านตอนที่รูปเยอะๆ
+        await autoScroll(page);
 
         const images = await page.evaluate(() => {
             const imgs = document.querySelectorAll('.reading-content img, #readerarea img, .page-break img, .wp-manga-chapter-img');
@@ -212,12 +217,12 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/:page', (req, res) => {
     const page = req.params.page;
-    const forbiddenFiles = ['server.js', 'package.json', 'package-lock.json', '.env', 'Dockerfile'];
-    if (forbiddenFiles.includes(page) || page.includes('..')) return res.status(403).send("Access Denied");
+    const forbidden = ['server.js', 'package.json', 'package-lock.json', '.env', 'Dockerfile'];
+    if (forbidden.includes(page) || page.includes('..')) return res.status(403).send("Access Denied");
     if (page.includes('.')) return res.sendFile(path.join(__dirname, page));
     const filePath = path.join(__dirname, page + '.html');
     res.sendFile(filePath, (err) => {
-        if (err) res.status(404).send("ไม่พบหน้านี้ในระบบ (404 Not Found)");
+        if (err) res.status(404).send("ไม่พบหน้านี้ (404)");
     });
 });
 

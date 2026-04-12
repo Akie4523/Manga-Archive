@@ -54,22 +54,38 @@ const isWhitelisted = (url) => {
     } catch (e) { return false; }
 };
 
-// --- 6. API Routes (ระบบเดิมของคุณ) ---
+// การตั้งค่า Puppeteer Launch แบบประหยัด RAM
+const puppeteerOptions = {
+    headless: "new",
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+    args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-zygote',
+        '--single-process'
+    ]
+};
+
+// --- 6. API Routes (ระบบจัดการข้อมูล) ---
 
 app.get("/ping", (req, res) => res.status(200).send("OK"));
 
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    const user = await User.findOne({ username });
-    if (!user || user.password !== password) {
-        return res.status(401).json({ success: false, message: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" });
-    }
-    res.json({
-        success: true,
-        token: process.env.SECRET_TOKEN,
-        username: user.username,
-        favorites: user.favorites
-    });
+    try {
+        const user = await User.findOne({ username });
+        if (!user || user.password !== password) {
+            return res.status(401).json({ success: false, message: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" });
+        }
+        res.json({
+            success: true,
+            token: process.env.SECRET_TOKEN,
+            username: user.username,
+            favorites: user.favorites
+        });
+    } catch (e) { res.status(500).send(e.message); }
 });
 
 app.get("/manga", async (req, res) => {
@@ -129,43 +145,40 @@ app.post("/favorite", auth, async (req, res) => {
     res.json({ success: true, favorites: user.favorites });
 });
 
-// --- 7. API Routes (ระบบ Scraper ใหม่) ---
-const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+// --- 7. API Routes (ระบบ Scraper) ---
+
 app.get('/api/fetch-chapters', async (req, res) => {
     const { url } = req.query;
     if (!isWhitelisted(url)) return res.status(403).json({ error: "Access Denied" });
 
     let browser;
     try {
-        browser = await puppeteer.launch({
-            headless: "new",
-            // ไม่ต้องระบุ Path ตายตัว ให้ Puppeteer หาเอง หรือดึงจาก Env
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined, 
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--single-process', // สำหรับ Server สเปกต่ำ
-                '--single-process'
-            ]
-        });
+        browser = await puppeteer.launch(puppeteerOptions);
         const page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        
         await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
         const chapters = await page.evaluate(() => {
             const list = [];
-            const selectors = ['.wp-manga-chapter a', '.chapter-link a', '#chapterlist a', '.num-a'];
+            const selectors = ['.wp-manga-chapter a', '.chapter-link a', '#chapterlist a', '.num-a', '.epsItem a'];
             selectors.forEach(s => {
                 document.querySelectorAll(s).forEach(el => {
-                    list.push({ title: el.innerText.trim(), url: el.href });
+                    if (el.href) {
+                        list.push({ title: el.innerText.trim(), url: el.href });
+                    }
                 });
             });
             return list;
         });
+
         res.json({ success: true, chapters });
-    } catch (err) { res.status(500).json({ error: err.message }); }
-    finally { if (browser) await browser.close(); }
+    } catch (err) {
+        console.error("Scraper Error:", err.message);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (browser) await browser.close();
+    }
 });
 
 app.get('/api/fetch-images', async (req, res) => {
@@ -174,17 +187,23 @@ app.get('/api/fetch-images', async (req, res) => {
 
     let browser;
     try {
-        browser = await puppeteer.launch({ headless: "new", args: ['--no-sandbox'] });
+        browser = await puppeteer.launch(puppeteerOptions);
         const page = await browser.newPage();
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        
         await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
         const images = await page.evaluate(() => {
-            const imgs = document.querySelectorAll('.reading-content img, #readerarea img, .page-break img');
-            return Array.from(imgs).map(img => img.dataset.src || img.src).filter(src => src && src.startsWith('http'));
+            const imgs = document.querySelectorAll('.reading-content img, #readerarea img, .page-break img, .wp-manga-chapter-img');
+            return Array.from(imgs).map(img => img.dataset.src || img.dataset.lazySrc || img.src)
+                        .filter(src => src && src.startsWith('http'));
         });
         res.json({ success: true, images });
-    } catch (err) { res.status(500).json({ error: err.message }); }
-    finally { if (browser) await browser.close(); }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (browser) await browser.close();
+    }
 });
 
 // --- 8. Serving Frontend ---
@@ -193,10 +212,16 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/:page', (req, res) => {
     const page = req.params.page;
-    const forbiddenFiles = ['server.js', 'package.json', 'package-lock.json', '.env'];
-    if (forbiddenFiles.includes(page) || page.includes('..')) return res.status(403).send("Access Denied");
-    if (page.includes('.')) return res.sendFile(path.join(__dirname, page));
+    const forbiddenFiles = ['server.js', 'package.json', 'package-lock.json', '.env', 'Dockerfile'];
     
+    if (forbiddenFiles.includes(page) || page.includes('..')) return res.status(403).send("Access Denied");
+    
+    // ถ้าไฟล์มีนามสกุล (เช่น styles.css, script.js)
+    if (page.includes('.')) {
+        return res.sendFile(path.join(__dirname, page));
+    }
+    
+    // ถ้าเรียกแบบไม่มีนามสกุล (เช่น /chapters) ให้ลองส่ง .html
     const filePath = path.join(__dirname, page + '.html');
     res.sendFile(filePath, (err) => {
         if (err) res.status(404).send("ไม่พบหน้านี้ในระบบ (404 Not Found)");
@@ -207,4 +232,5 @@ app.get('/:page', (req, res) => {
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`🌍 Mode: ${process.env.NODE_ENV || 'development'}`);
 });

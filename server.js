@@ -54,7 +54,6 @@ const isWhitelisted = (url) => {
     } catch (e) { return false; }
 };
 
-// การตั้งค่า Puppeteer Launch แบบประหยัด RAM
 const puppeteerOptions = {
     headless: "new",
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
@@ -68,8 +67,26 @@ const puppeteerOptions = {
     ]
 };
 
-// --- 6. API Routes (ระบบจัดการข้อมูล) ---
+// ฟังก์ชันช่วยเลื่อนหน้าจอ (Auto Scroll) เพื่อให้เนื้อหาโหลดครบ
+async function autoScroll(page) {
+    await page.evaluate(async () => {
+        await new Promise((resolve) => {
+            let totalHeight = 0;
+            let distance = 100;
+            let timer = setInterval(() => {
+                let scrollHeight = document.body.scrollHeight;
+                window.scrollBy(0, distance);
+                totalHeight += distance;
+                if (totalHeight >= scrollHeight) {
+                    clearInterval(timer);
+                    resolve();
+                }
+            }, 100);
+        });
+    });
+}
 
+// --- 6. API Routes (ระบบจัดการข้อมูล) ---
 app.get("/ping", (req, res) => res.status(200).send("OK"));
 
 app.post('/login', async (req, res) => {
@@ -103,49 +120,7 @@ app.get("/api/manga/:id", async (req, res) => {
     } catch (err) { res.status(500).json({ message: "Error fetching manga" }); }
 });
 
-app.post("/add", auth, async (req, res) => {
-    try {
-        const mangaData = req.body;
-        if (!mangaData.id) mangaData.id = Date.now().toString();
-        const newManga = new Manga(mangaData);
-        await newManga.save();
-        res.json({ message: "เพิ่มสำเร็จ!" });
-    } catch (err) { res.status(500).json({ message: "ไม่สามารถเพิ่มข้อมูลได้", error: err.message }); }
-});
-
-app.put('/api/manga/:id', auth, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const updatedData = req.body;
-        let result = await Manga.findByIdAndUpdate(id, updatedData, { new: true }).catch(() => null);
-        if (!result) result = await Manga.findOneAndUpdate({ id: id }, updatedData, { new: true });
-        if (!result) return res.status(404).json({ message: "ไม่พบมังงะที่ต้องการแก้ไข" });
-        res.status(200).json({ message: "อัปเดตเรียบร้อย!", data: result });
-    } catch (err) { res.status(500).json({ message: "เกิดข้อผิดพลาดในการอัปเดต" }); }
-});
-
-app.delete("/delete/:id", auth, async (req, res) => {
-    try {
-        const { id } = req.params;
-        let result = await Manga.findByIdAndDelete(id).catch(() => null);
-        if (!result) result = await Manga.deleteOne({ id: id });
-        if (result.deletedCount === 0 && !result._id) return res.status(404).json({ message: "ไม่พบข้อมูลที่ต้องการลบ" });
-        res.json({ message: "ลบข้อมูลเรียบร้อยแล้ว!" });
-    } catch (err) { res.status(500).json({ message: "เกิดข้อผิดพลาดในการลบ" }); }
-});
-
-app.post("/favorite", auth, async (req, res) => {
-    const { username, mangaId } = req.body;
-    const user = await User.findOne({ username });
-    if (!user) return res.status(404).send("User not found");
-    const index = user.favorites.indexOf(mangaId);
-    if (index === -1) user.favorites.push(mangaId);
-    else user.favorites.splice(index, 1);
-    await user.save();
-    res.json({ success: true, favorites: user.favorites });
-});
-
-// --- 7. API Routes (ระบบ Scraper) ---
+// --- 7. API Routes (ระบบ Scraper ปรับปรุงใหม่) ---
 
 app.get('/api/fetch-chapters', async (req, res) => {
     const { url } = req.query;
@@ -153,28 +128,53 @@ app.get('/api/fetch-chapters', async (req, res) => {
 
     let browser;
     try {
+        console.log(`🚀 กำลังดึงข้อมูล: ${url}`);
         browser = await puppeteer.launch(puppeteerOptions);
         const page = await browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
         
+        // รอแค่โครงสร้างพื้นฐานมาก็พอ (เร็วกว่า)
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+        // รัน Auto Scroll เพื่อให้ตอนที่ซ่อนอยู่โหลดออกมา
+        await autoScroll(page);
+
+        // รอสักครู่ให้ Script หลังบ้านของเว็บต้นทางทำงาน
+        await new Promise(r => setTimeout(r, 1000));
 
         const chapters = await page.evaluate(() => {
             const list = [];
-            const selectors = ['.wp-manga-chapter a', '.chapter-link a', '#chapterlist a', '.num-a', '.epsItem a'];
+            // รวม Selector ทั้งแบบเก่า และแบบใหม่ของ Fluxtoon (.grid a)
+            const selectors = [
+                '.grid.grid-cols-2.gap-2 a', 
+                '.wp-manga-chapter a', 
+                '.chapter-link a', 
+                '#chapterlist a', 
+                '.num-a', 
+                '.epsItem a'
+            ];
+            
             selectors.forEach(s => {
                 document.querySelectorAll(s).forEach(el => {
-                    if (el.href) {
-                        list.push({ title: el.innerText.trim(), url: el.href });
+                    // กรองเฉพาะที่มีลิงก์และเป็นลิงก์ตอนจริงๆ
+                    if (el.href && (el.href.includes('/content/') || el.href.includes('/chapter/'))) {
+                        const title = el.innerText.trim().replace(/\s+/g, ' ');
+                        if (title) {
+                            list.push({ title, url: el.href });
+                        }
                     }
                 });
             });
-            return list;
+
+            // ลบรายการที่ซ้ำกัน
+            return list.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
         });
 
+        console.log(`✅ พบทั้งหมด ${chapters.length} ตอน`);
         res.json({ success: true, chapters });
+
     } catch (err) {
-        console.error("Scraper Error:", err.message);
+        console.error("❌ Scraper Error:", err.message);
         res.status(500).json({ error: err.message });
     } finally {
         if (browser) await browser.close();
@@ -189,9 +189,10 @@ app.get('/api/fetch-images', async (req, res) => {
     try {
         browser = await puppeteer.launch(puppeteerOptions);
         const page = await browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
         
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await autoScroll(page); // สำหรับอ่านตอนที่รูปเยอะๆ
 
         const images = await page.evaluate(() => {
             const imgs = document.querySelectorAll('.reading-content img, #readerarea img, .page-break img, .wp-manga-chapter-img');
@@ -207,21 +208,13 @@ app.get('/api/fetch-images', async (req, res) => {
 });
 
 // --- 8. Serving Frontend ---
-
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/:page', (req, res) => {
     const page = req.params.page;
     const forbiddenFiles = ['server.js', 'package.json', 'package-lock.json', '.env', 'Dockerfile'];
-    
     if (forbiddenFiles.includes(page) || page.includes('..')) return res.status(403).send("Access Denied");
-    
-    // ถ้าไฟล์มีนามสกุล (เช่น styles.css, script.js)
-    if (page.includes('.')) {
-        return res.sendFile(path.join(__dirname, page));
-    }
-    
-    // ถ้าเรียกแบบไม่มีนามสกุล (เช่น /chapters) ให้ลองส่ง .html
+    if (page.includes('.')) return res.sendFile(path.join(__dirname, page));
     const filePath = path.join(__dirname, page + '.html');
     res.sendFile(filePath, (err) => {
         if (err) res.status(404).send("ไม่พบหน้านี้ในระบบ (404 Not Found)");
@@ -232,5 +225,4 @@ app.get('/:page', (req, res) => {
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server is running on port ${PORT}`);
-    console.log(`🌍 Mode: ${process.env.NODE_ENV || 'development'}`);
 });

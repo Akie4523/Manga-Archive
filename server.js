@@ -3,10 +3,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-
-puppeteer.use(StealthPlugin());
+const axios = require('axios');
+const cheerio = require('cheerio');
 
 const app = express();
 
@@ -34,18 +32,10 @@ const User = mongoose.model('User', new mongoose.Schema({
     favorites: [String]
 }));
 
-// --- 4. Auth Middleware ---
-const auth = (req, res, next) => {
-    if (req.method === 'OPTIONS') return next();
-    const token = req.headers['authorization'];
-    if (token === process.env.SECRET_TOKEN) {
-        next();
-    } else {
-        res.status(403).json({ message: "Forbidden: กุญแจไม่ถูกต้อง" });
-    }
-};
+// --- 4. GAS Config ---
+// URL ของ Google Apps Script ที่คุณให้มา
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxlIEynv1arhgGRxg4t2VgxZ9zvpzJEuStUWHPHrE4m9qiWhuA8Kx4hC37I2oFh4dL7/exec";
 
-// --- 5. Security & Scraper Helpers ---
 const isWhitelisted = (url) => {
     try {
         const domain = new URL(url).hostname;
@@ -54,39 +44,7 @@ const isWhitelisted = (url) => {
     } catch (e) { return false; }
 };
 
-const puppeteerOptions = {
-    headless: "new",
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-    args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-blink-features=AutomationControlled', // ปิดการส่งสัญญาณว่าเป็น Bot
-        '--disable-infobars',
-        '--window-size=1280,720',
-        '--lang=en-US,en;q=0.9'
-    ]
-};
-// ฟังก์ชันช่วยเลื่อนหน้าจอเพื่อให้เนื้อหาโหลดครบ
-async function autoScroll(page) {
-    await page.evaluate(async () => {
-        await new Promise((resolve) => {
-            let totalHeight = 0;
-            let distance = 150;
-            let timer = setInterval(() => {
-                let scrollHeight = document.body.scrollHeight;
-                window.scrollBy(0, distance);
-                totalHeight += distance;
-                if (totalHeight >= scrollHeight) {
-                    clearInterval(timer);
-                    resolve();
-                }
-            }, 100);
-        });
-    });
-}
-
-// --- 6. API Routes (ข้อมูลทั่วไป) ---
+// --- 5. API Routes (ข้อมูลทั่วไป) ---
 app.get("/ping", (req, res) => res.status(200).send("OK"));
 
 app.post('/login', async (req, res) => {
@@ -124,91 +82,51 @@ app.put('/api/manga/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const updateData = req.body;
-
-        // ค้นหาด้วย ID และอัปเดตข้อมูลใหม่
-        const updatedManga = await Manga.findOneAndUpdate(
-            { id: id }, 
-            updateData, 
-            { new: true } // ให้คืนค่าข้อมูลที่อัปเดตแล้วกลับมา
-        );
-
-        if (!updatedManga) {
-            return res.status(404).json({ message: "ไม่พบมังงะที่ต้องการแก้ไข" });
-        }
-
-        console.log(`✅ Updated Manga ID: ${id}`);
+        const updatedManga = await Manga.findOneAndUpdate({ id: id }, updateData, { new: true });
+        if (!updatedManga) return res.status(404).json({ message: "ไม่พบมังงะที่ต้องการแก้ไข" });
         res.json({ success: true, manga: updatedManga });
-    } catch (err) {
-        console.error("❌ Update Error:", err);
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// --- 7. API Routes (ระบบ Scraper ปรับปรุงใหม่) ---
+// --- 6. API Routes (Scraper using GAS Proxy) ---
 
 app.get('/api/fetch-chapters', async (req, res) => {
     const { url } = req.query;
     if (!isWhitelisted(url)) return res.status(403).json({ error: "Access Denied" });
 
-    let browser;
     try {
-        console.log(`🚀 เริ่มภารกิจดึงข้อมูล: ${url}`);
-        browser = await puppeteer.launch(puppeteerOptions);
-        const page = await browser.newPage();
-        
-        // กำหนด User Agent ให้เหมือน Chrome บน Windows จริงๆ
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36');
-        
-        // ลบคุณสมบัติ navigator.webdriver เพื่อหลบการตรวจจับ
-        await page.evaluateOnNewDocument(() => {
-            Object.defineProperty(navigator, 'webdriver', { get: () => false });
-        });
+        console.log(`📡 Fetching Chapters via GAS: ${url}`);
+        // เรียกข้อมูลผ่าน GAS
+        const response = await axios.get(`${GAS_URL}?url=${encodeURIComponent(url)}`);
+        const html = response.data;
 
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-
-        // --- ระบบรอ Cloudflare ปลดล็อค ---
-        let currentTitle = await page.title();
-        let retry = 0;
-        while (currentTitle.includes("Just a moment") && retry < 10) {
-            console.log(`⏳ ติดด่าน Cloudflare... กำลังรอรอบที่ ${retry + 1}`);
-            await new Promise(r => setTimeout(r, 2000)); // รอทีละ 2 วินาที
-            currentTitle = await page.title();
-            retry++;
+        if (typeof html !== 'string' || html.includes("Error:")) {
+            throw new Error("GAS Proxy returned an error or invalid data");
         }
 
-        console.log(`📄 Page Title ล่าสุด: ${currentTitle}`);
+        const $ = cheerio.load(html);
+        const chapters = [];
 
-        if (currentTitle.includes("Just a moment")) {
-            throw new Error("Cloudflare Blocked: ไม่สามารถผ่านด่านตรวจได้");
-        }
+        // Selector สำหรับ Fluxtoon และเว็บแนวเดียวกัน
+        const elements = $('a[href*="/content/"], a[href*="/chapter/"], .grid a, .wp-manga-chapter a');
 
-        await autoScroll(page);
-        await new Promise(r => setTimeout(r, 1000));
-
-        const chapters = await page.evaluate(() => {
-            const list = [];
-            // ใช้ Selector ที่กว้างขึ้นเพื่อให้ครอบคลุม
-            const elements = document.querySelectorAll('a[href*="/content/"], a[href*="/chapter/"], .grid a');
-            
-            elements.forEach(el => {
-                const href = el.href;
-                const text = el.innerText.trim();
-                // กรองเฉพาะลิงก์ที่น่าจะเป็นตอน (มีตัวเลข หรือคำว่า chapter)
-                if (href && text && (/\d+/.test(text) || href.includes('chapter'))) {
-                    list.push({ title: text.replace(/\s+/g, ' '), url: href });
-                }
-            });
-            return list.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
+        elements.each((i, el) => {
+            const href = $(el).attr('href');
+            const text = $(el).text().trim();
+            if (href && text && (/\d+/.test(text) || href.includes('chapter'))) {
+                chapters.push({ title: text.replace(/\s+/g, ' '), url: href });
+            }
         });
 
-        console.log(`✅ ดึงสำเร็จ: ${chapters.length} ตอน`);
-        res.json({ success: true, chapters });
+        // ลบตัวซ้ำ
+        const uniqueChapters = chapters.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
+        
+        console.log(`✅ ดึงสำเร็จ: ${uniqueChapters.length} ตอน`);
+        res.json({ success: true, chapters: uniqueChapters });
 
     } catch (err) {
         console.error("❌ Scraper Error:", err.message);
-        res.status(500).json({ error: "ติดด่านป้องกันของเว็บต้นทาง", details: err.message });
-    } finally {
-        if (browser) await browser.close();
+        res.json({ success: false, targetUrl: url });
     }
 });
 
@@ -216,29 +134,31 @@ app.get('/api/fetch-images', async (req, res) => {
     const { url } = req.query;
     if (!isWhitelisted(url)) return res.status(403).json({ error: "Access Denied" });
 
-    let browser;
     try {
-        browser = await puppeteer.launch(puppeteerOptions);
-        const page = await browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
-        
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        await autoScroll(page);
+        console.log(`📡 Fetching Images via GAS: ${url}`);
+        const response = await axios.get(`${GAS_URL}?url=${encodeURIComponent(url)}`);
+        const html = response.data;
 
-        const images = await page.evaluate(() => {
-            const imgs = document.querySelectorAll('.reading-content img, #readerarea img, .page-break img, .wp-manga-chapter-img');
-            return Array.from(imgs).map(img => img.dataset.src || img.dataset.lazySrc || img.src)
-                        .filter(src => src && src.startsWith('http'));
+        const $ = cheerio.load(html);
+        const images = [];
+
+        // ค้นหารูปภาพจาก Selector ทั่วไปของเว็บมังงะ
+        $('.reading-content img, #readerarea img, .page-break img, .wp-manga-chapter-img').each((i, el) => {
+            const src = $(el).attr('data-src') || $(el).attr('data-lazy-src') || $(el).attr('src');
+            if (src && src.startsWith('http')) {
+                images.push(src.trim());
+            }
         });
+
+        console.log(`✅ ดึงรูปสำเร็จ: ${images.length} รูป`);
         res.json({ success: true, images });
     } catch (err) {
+        console.error("❌ Image Fetch Error:", err.message);
         res.status(500).json({ error: err.message });
-    } finally {
-        if (browser) await browser.close();
     }
 });
 
-// --- 8. Serving Frontend ---
+// --- 7. Serving Frontend ---
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/:page', (req, res) => {
@@ -252,7 +172,7 @@ app.get('/:page', (req, res) => {
     });
 });
 
-// --- 9. Start Server ---
+// --- 8. Start Server ---
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server is running on port ${PORT}`);

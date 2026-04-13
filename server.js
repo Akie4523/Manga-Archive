@@ -120,6 +120,30 @@ app.get("/api/manga/:id", async (req, res) => {
     } catch (err) { res.status(500).json({ message: "Error fetching manga" }); }
 });
 
+app.put('/api/manga/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+
+        // ค้นหาด้วย ID และอัปเดตข้อมูลใหม่
+        const updatedManga = await Manga.findOneAndUpdate(
+            { id: id }, 
+            updateData, 
+            { new: true } // ให้คืนค่าข้อมูลที่อัปเดตแล้วกลับมา
+        );
+
+        if (!updatedManga) {
+            return res.status(404).json({ message: "ไม่พบมังงะที่ต้องการแก้ไข" });
+        }
+
+        console.log(`✅ Updated Manga ID: ${id}`);
+        res.json({ success: true, manga: updatedManga });
+    } catch (err) {
+        console.error("❌ Update Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- 7. API Routes (ระบบ Scraper ปรับปรุงใหม่) ---
 
 app.get('/api/fetch-chapters', async (req, res) => {

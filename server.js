@@ -95,37 +95,52 @@ app.get('/api/fetch-chapters', async (req, res) => {
     if (!isWhitelisted(url)) return res.status(403).json({ error: "Access Denied" });
 
     try {
-        console.log(`📡 Fetching Chapters via GAS: ${url}`);
-        // เรียกข้อมูลผ่าน GAS
-        const response = await axios.get(`${GAS_URL}?url=${encodeURIComponent(url)}`);
+        console.log(`📡 Fetching via GAS: ${url}`);
+        
+        const response = await axios.get(GAS_URL, {
+            params: { url: url },
+            timeout: 30000,
+            maxRedirects: 5
+        });
+
         const html = response.data;
 
-        if (typeof html !== 'string' || html.includes("Error:")) {
-            throw new Error("GAS Proxy returned an error or invalid data");
+        // เช็คว่า GAS ส่ง Error กลับมาเป็น String หรือเปล่า
+        if (typeof html !== 'string' || html.startsWith("Error:")) {
+            console.error("⚠️ GAS Side Error:", html);
+            return res.json({ success: false, targetUrl: url, message: html });
         }
 
         const $ = cheerio.load(html);
         const chapters = [];
 
-        // Selector สำหรับ Fluxtoon และเว็บแนวเดียวกัน
-        const elements = $('a[href*="/content/"], a[href*="/chapter/"], .grid a, .wp-manga-chapter a');
-
-        elements.each((i, el) => {
+        // ปรับ Selector ให้เจาะจงสำหรับ Fluxtoon มากขึ้น
+        // ปกติ Fluxtoon จะใช้ .wp-manga-chapter หรือระบุเจาะจงใน list-group
+        $('.wp-manga-chapter a, .listing-chapters_wrap a').each((i, el) => {
             const href = $(el).attr('href');
             const text = $(el).text().trim();
-            if (href && text && (/\d+/.test(text) || href.includes('chapter'))) {
-                chapters.push({ title: text.replace(/\s+/g, ' '), url: href });
+            if (href && text && /\d+/.test(text)) {
+                chapters.push({ title: text, url: href });
             }
         });
 
-        // ลบตัวซ้ำ
+        if (chapters.length === 0) {
+            // ลองใช้ Selector สำรองถ้าหาไม่เจอ
+            $('a').each((i, el) => {
+                const href = $(el).attr('href') || "";
+                const text = $(el).text().trim();
+                if (href.includes('/chapter-') || href.includes('/ตอนที่-')) {
+                   chapters.push({ title: text || href.split('/').pop(), url: href });
+                }
+            });
+        }
+
         const uniqueChapters = chapters.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
-        
         console.log(`✅ ดึงสำเร็จ: ${uniqueChapters.length} ตอน`);
         res.json({ success: true, chapters: uniqueChapters });
 
     } catch (err) {
-        console.error("❌ Scraper Error:", err.message);
+        console.error("❌ Node Server Error:", err.message);
         res.json({ success: false, targetUrl: url });
     }
 });

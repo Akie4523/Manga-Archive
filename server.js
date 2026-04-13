@@ -173,6 +173,17 @@ app.get('/api/fetch-images', async (req, res) => {
     }
 });
 
+app.get('/api/fetch-chapters', async (req, res) => {
+    const { url } = req.query;
+    // ไม่ต้องฝืนดึงแล้ว ส่ง success: false ไปเลยเพื่อให้ Frontend จัดการต่อ
+    console.log(`⚠️ Redirecting user to source: ${url}`);
+    res.json({ 
+        success: false, 
+        targetUrl: url, 
+        message: "Cloudflare ของเว็บต้นทางเข้มงวดเกินไป ระบบจะพาคุณไปอ่านที่หน้าเว็บหลัก" 
+    });
+});
+
 // --- 7. Serving Frontend ---
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 

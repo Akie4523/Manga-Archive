@@ -235,34 +235,27 @@ client.on('messageCreate', async (message) => {
     // เช็คห้องกับดัก
     if (TRAP_CHANNELS.includes(message.channel.id)) {
         try {
-            // 1. ลงโทษ Timeout 24 ชม. (หน่วยเป็นมิลลิวินาที)
+            // 1. ลงโทษ Timeout 24 ชม.
             const member = await message.guild.members.fetch(message.author.id);
             await member.timeout(24 * 60 * 60 * 1000, 'Security Trigger: Honey Pot');
 
             // 2. ลบข้อความ
             await message.delete();
 
-            // 3. ส่ง DM แจ้งเตือน
+            // 3. ส่ง DM แจ้งเตือน (ข้อความที่คุณต้องการ)
             try {
-                await message.author.send(`**แจ้งเตือนจากเซิร์ฟเวอร์ {message.guild.name}**\n\n"
-                    f"บัญชีของคุณถูก Timeout เป็นเวลา 24 ชั่วโมง เนื่องจากมีการพิมพ์ในห้อง ${message.guild.name}\n"
-                    f"ระบบได้ทำการลบข้อความของคุณเพื่อความปลอดภัย หากคุณไม่ได้เป็นคนพิมพ์ โปรดตรวจสอบไอดีของคุณโดยด่วน`);
+                await message.author.send(
+                    `**แจ้งเตือนจากเซิร์ฟเวอร์ ${message.guild.name}**\n\n` +
+                    `บัญชีของคุณถูก Timeout เป็นเวลา 24 ชั่วโมง เนื่องจากมีการพิมพ์ในห้อง ${message.channel.name}\n` +
+                    `ระบบได้ทำการลบข้อความของคุณเพื่อความปลอดภัย หากคุณไม่ได้เป็นคนพิมพ์ โปรดตรวจสอบไอดีของคุณโดยด่วน`
+                );
             } catch (dmErr) {
-                console.log('❌ ไม่สามารถส่ง DM ได้');
+                console.log(`❌ ไม่สามารถส่ง DM ให้ ${message.author.tag} ได้ (อาจปิด DM ส่วนตัว)`);
             }
 
-            console.log(`⚡ จัดการ Timeout และลบข้อความของ ${message.author.tag} เรียบร้อย`);
+            console.log(`⚡ จัดการลบข้อความและ Timeout: ${message.author.tag} เรียบร้อย`);
         } catch (err) {
-            console.error('⚠️ Bot Error:', err);
+            console.error('⚠️ เกิดข้อผิดพลาดในการจัดการห้องกับดัก:', err);
         }
     }
 });
-
-// รันบอท
-if (TOKEN) {
-    client.login(TOKEN);
-} else {
-    console.log('❌ ไม่พบ DISCORD_TOKEN ใน Environment');
-}
-
-// --- โค้ดเดิมของ server.js (Express/HTTP) จะอยู่ตรงนี้ ---

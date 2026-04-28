@@ -12,6 +12,7 @@
     "dotenv": "^16.6.1",
     "express": "^4.22.1",
     "mongodb": "^7.1.0",
-    "mongoose": "^7.8.9"
+    "mongoose": "^7.8.9",
+    "discord.js": "^14.14.1"
   }
 }

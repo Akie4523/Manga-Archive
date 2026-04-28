@@ -6,6 +6,78 @@ const path = require('path');
 const axios = require('axios');
 const cheerio = require('cheerio');
 
+/--Discord Bot--/
+
+const { Client, GatewayIntentBits, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+
+// --- 1. ตั้งค่าบอท (ดึงจาก Environment ของ Render) ---
+const TOKEN = process.env.DISCORD_TOKEN;
+const MY_OWNER_ID = '767330467329343528';
+const TRAP_CHANNELS = ['1498735590596804721', '1498741392770465864'];
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers
+    ]
+});
+
+// --- 2. ระบบจัดการห้องกับดัก ---
+client.on('messageCreate', async (message) => {
+    // ป้องกันบอทคุยกันเอง
+    if (message.author.bot) return;
+
+    // ถ้าเป็นไอดี Akie ให้ข้ามไปเลย ไม่ต้องโดนเตะ
+    if (message.author.id === MY_OWNER_ID) return;
+
+    // เช็คว่าห้องที่พิมพ์อยู่ในลิสต์ห้องกับดักไหม
+    if (TRAP_CHANNELS.includes(message.channel.id)) {
+        console.log(`🎯 ตรวจพบคนหลงกลในห้อง ${message.channel.name}: ${message.author.tag}`);
+        
+        try {
+            const member = await message.guild.members.fetch(message.author.id);
+            
+            // 1. ลงโทษ Timeout 24 ชม.
+            await member.timeout(24 * 60 * 60 * 1000, 'Security Trigger: Honey Pot');
+
+            // 2. ลบข้อความทันที
+            await message.delete();
+
+            // 3. ส่ง DM แจ้งเตือนตามข้อความที่คุณต้องการ
+            try {
+                await message.author.send(
+                    `**แจ้งเตือนจากเซิร์ฟเวอร์ ${message.guild.name}**\n\n` +
+                    `บัญชีของคุณถูก Timeout เป็นเวลา 24 ชั่วโมง เนื่องจากมีการพิมพ์ในห้อง ${message.channel.name}\n` +
+                    `ระบบได้ทำการลบข้อความของคุณเพื่อความปลอดภัย หากคุณไม่ได้เป็นคนพิมพ์ โปรดตรวจสอบไอดีของคุณโดยด่วน`
+                );
+            } catch (dmErr) {
+                console.log(`⚠️ ส่ง DM ให้ ${message.author.tag} ไม่สำเร็จ (เขาอาจปิด DM ส่วนตัว)`);
+            }
+
+            console.log(`⚡ จัดการ Timeout และลบข้อความของ ${message.author.tag} สำเร็จ`);
+        } catch (err) {
+            console.error('❌ เกิดข้อผิดพลาดในการลงโทษ:', err);
+        }
+    }
+});
+
+// --- 3. เริ่มทำงานบอท ---
+client.once('ready', () => {
+    console.log(`✅ [Discord Bot] ออนไลน์ในชื่อ: ${client.user.tag}`);
+});
+
+if (TOKEN) {
+    client.login(TOKEN).catch(err => console.error('❌ Login บอทไม่สำเร็จ:', err));
+} else {
+    console.log('❌ ไม่พบ DISCORD_TOKEN ในหน้า Environment ของ Render');
+}
+
+// --- ต่อจากนี้เป็นโค้ดเว็บ Express/Server เดิมของคุณ ---
+// เช่น const app = express(); ...
+/--Discord Bot END--/
+
 const app = express();
 
 // --- 1. Middleware & Config ---
@@ -202,60 +274,4 @@ app.get('/:page', (req, res) => {
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server is running on port ${PORT}`);
-});
-
-/--Discord Bot--/
-
-const { Client, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
-
-// --- ตั้งค่าบอท ---
-const TOKEN = process.env.DISCORD_TOKEN;
-const MY_OWNER_ID = '767330467329343528';
-const TRAP_CHANNELS = ['1498735590596804721', '1498741392770465864'];
-
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers
-    ]
-});
-
-client.once('ready', () => {
-    console.log(`✅ บอท ${client.user.tag} ออนไลน์พร้อมกับเว็บแล้ว!`);
-});
-
-client.on('messageCreate', async (message) => {
-    if (message.author.bot) return;
-
-    // Bypass ให้ตัวเอง
-    if (message.author.id === MY_OWNER_ID) return;
-
-    // เช็คห้องกับดัก
-    if (TRAP_CHANNELS.includes(message.channel.id)) {
-        try {
-            // 1. ลงโทษ Timeout 24 ชม.
-            const member = await message.guild.members.fetch(message.author.id);
-            await member.timeout(24 * 60 * 60 * 1000, 'Security Trigger: Honey Pot');
-
-            // 2. ลบข้อความ
-            await message.delete();
-
-            // 3. ส่ง DM แจ้งเตือน (ข้อความที่คุณต้องการ)
-            try {
-                await message.author.send(
-                    `**แจ้งเตือนจากเซิร์ฟเวอร์ ${message.guild.name}**\n\n` +
-                    `บัญชีของคุณถูก Timeout เป็นเวลา 24 ชั่วโมง เนื่องจากมีการพิมพ์ในห้อง ${message.channel.name}\n` +
-                    `ระบบได้ทำการลบข้อความของคุณเพื่อความปลอดภัย หากคุณไม่ได้เป็นคนพิมพ์ โปรดตรวจสอบไอดีของคุณโดยด่วน`
-                );
-            } catch (dmErr) {
-                console.log(`❌ ไม่สามารถส่ง DM ให้ ${message.author.tag} ได้ (อาจปิด DM ส่วนตัว)`);
-            }
-
-            console.log(`⚡ จัดการลบข้อความและ Timeout: ${message.author.tag} เรียบร้อย`);
-        } catch (err) {
-            console.error('⚠️ เกิดข้อผิดพลาดในการจัดการห้องกับดัก:', err);
-        }
-    }
 });

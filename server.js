@@ -74,9 +74,8 @@ if (TOKEN) {
     console.log('❌ ไม่พบ DISCORD_TOKEN ในหน้า Environment ของ Render');
 }
 
-// --- ต่อจากนี้เป็นโค้ดเว็บ Express/Server เดิมของคุณ ---
-// เช่น const app = express(); ...
-/--Discord Bot END--/
+
+/--Discord Bot E--/
 
 const app = express();
 
@@ -158,6 +157,51 @@ app.put('/api/manga/:id', async (req, res) => {
         if (!updatedManga) return res.status(404).json({ message: "ไม่พบมังงะที่ต้องการแก้ไข" });
         res.json({ success: true, manga: updatedManga });
     } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+    // เพิ่มมังงะใหม่
+app.post("/add", auth, async (req, res) => {
+    try {
+        const mangaData = req.body;
+        if (!mangaData.id) mangaData.id = Date.now().toString();
+        const newManga = new Manga(mangaData);
+        await newManga.save();
+        res.json({ message: "เพิ่มสำเร็จ!" });
+    } catch (err) { res.status(500).json({ message: "ไม่สามารถเพิ่มข้อมูลได้", error: err.message }); }
+});
+
+    // ลบมังงะ
+app.delete("/delete/:id", auth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        let result = await Manga.findByIdAndDelete(id).catch(() => null);
+        if (!result) result = await Manga.deleteOne({ id: id });
+        if (result.deletedCount === 0 && !result._id) return res.status(404).json({ message: "ไม่พบข้อมูลที่ต้องการลบ" });
+        res.json({ message: "ลบข้อมูลเรียบร้อยแล้ว!" });
+    } catch (err) { res.status(500).json({ message: "เกิดข้อผิดพลาดในการลบ" }); }
+});
+
+    // แก้ไขข้อมูล
+app.put('/api/manga/:id', auth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updatedData = req.body;
+        let result = await Manga.findByIdAndUpdate(id, updatedData, { new: true }).catch(() => null);
+        if (!result) result = await Manga.findOneAndUpdate({ id: id }, updatedData, { new: true });
+        if (!result) return res.status(404).json({ message: "ไม่พบมังงะที่ต้องการแก้ไข" });
+        res.status(200).json({ message: "อัปเดตเรียบร้อย!", data: result });
+    } catch (err) { res.status(500).json({ message: "เกิดข้อผิดพลาดในการอัปเดต" }); }
+});
+    // ระบบติดดาว
+app.post("/favorite", auth, async (req, res) => {
+    const { username, mangaId } = req.body;
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).send("User not found");
+    const index = user.favorites.indexOf(mangaId);
+    if (index === -1) user.favorites.push(mangaId);
+    else user.favorites.splice(index, 1);
+    await user.save();
+    res.json({ success: true, favorites: user.favorites });
 });
 
 // --- 6. API Routes (Scraper using GAS Proxy) ---

@@ -103,6 +103,16 @@ const User = mongoose.model('User', new mongoose.Schema({
     favorites: [String]
 }));
 
+const auth = (req, res, next) => {
+    if (req.method === 'OPTIONS') return next();
+    const token = req.headers['authorization'];
+    if (token === process.env.SECRET_TOKEN) {
+        next();
+    } else {
+        res.status(403).json({ message: "Forbidden: กุญแจไม่ถูกต้อง" });
+    }
+};
+
 // --- 4. GAS Config ---
 // URL ของ Google Apps Script ที่คุณให้มา
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxlIEynv1arhgGRxg4t2VgxZ9zvpzJEuStUWHPHrE4m9qiWhuA8Kx4hC37I2oFh4dL7/exec";

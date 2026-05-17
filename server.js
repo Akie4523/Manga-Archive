@@ -94,7 +94,7 @@ const Manga = mongoose.model('Manga', new mongoose.Schema({
     id: String, title: String, cover: String, description: String, tags: [String],
     rating: String, jp_name: String, en_name: String, th_name: String,
     author: String, artist: String, translator: String, translator_link: String,
-    thai_url: String, eng_url: String, original_url: String, updated_at: String
+    thai_url: String, eng_url: String, original_url: String, facebook_post_url: { type: String, default: "" }, updated_at: String
 }));
 
 const User = mongoose.model('User', new mongoose.Schema({

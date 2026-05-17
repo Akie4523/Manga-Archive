@@ -61,25 +61,17 @@
 
     try {
         let urlObj = new URL(targetUrl);
-        
-        // 1. ตรวจสอบถ้าเป็นลิงก์เฟสบุ๊ค บังคับแปลงเป็นเวอร์ชัน www (คอมพิวเตอร์) 
-        // เพื่อไม่ให้มันเด้งเข้าหน้าแอปมือถือที่ชอบเรียงจัดรูปตารางมั่ว ๆ
         if (urlObj.hostname.includes("facebook.com")) {
             urlObj.hostname = "www.facebook.com";
-            
-            // 2. แอบแฝงโค้ดลับพ่วงท้ายเพื่อล็อกให้แสดงเป็น "มุมมองฟีดแนวยาว" (Feed View) 
-            // ตัวเว็บจะโดนบังคับเรียงรูปหน้า 1, 2, 3 ตามลำดับเวลาที่อัปโหลดทันที
             if (!urlObj.searchParams.has("v")) {
                 urlObj.searchParams.set("v", "feed"); 
             }
         }
-        
         finalUrl = urlObj.toString();
     } catch (e) {
         finalUrl = targetUrl;
     }
 
-    // ล็อกให้ปุ่มตกลงใน Modal เปิดลิงก์ที่โกงแล้ว และให้เปิดแท็บใหม่บน Browser นอกแอป
     const finalLinkEl = document.getElementById('final-link');
     finalLinkEl.href = finalUrl;
     finalLinkEl.target = "_blank"; 
@@ -114,17 +106,23 @@
         if (m.th_name && m.en_name) otherNames.push({ label: "English", value: m.en_name });
         if (m.jp_name) otherNames.push({ label: "Raw", value: m.jp_name });
 
+        // 🛠️ จุดแก้ไขสำคัญ: เพิ่มคลาส lg:hidden ไว้ที่กล่อง #fb-post-section เพื่อสั่งซ่อนบนจอ PC
         document.getElementById("app").innerHTML = `
           <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
             <div class="w-full lg:w-72 flex-shrink-0">
-              <div class="sticky top-24">
-                <div class="aspect-[3/4] w-full rounded-2xl overflow-hidden shadow-2xl border dark:border-slate-800 mb-6 bg-slate-200 dark:bg-slate-800">
+              <div class="sticky top-24 space-y-4">
+                <div class="aspect-[3/4] w-full rounded-2xl overflow-hidden shadow-2xl border dark:border-slate-800 bg-slate-200 dark:bg-slate-800">
                   <img src="${m.cover}" 
                        alt="${escapeHTML(displayTitle)}"
                        class="w-full h-full object-cover"
                        onerror="this.onerror=null; this.src='https://placehold.co/350x500?text=No+Cover';">
                 </div>
                 <div id="links-container" class="grid grid-cols-1 gap-3"></div>
+                
+                <div id="fb-post-section" class="hidden lg:hidden space-y-2 !mt-6">
+                  <h2 class="text-xl font-bold flex items-center gap-2 dark:text-amber-400"><span class="w-1.5 h-6 bg-blue-500 rounded-full"></span> ⚠️ คำแนะนำการอ่านบน Facebook</h2>
+                  <div id="fb-embed-container" class="w-full bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm"></div>
+                </div>
               </div>
             </div>
 
@@ -144,13 +142,6 @@
                 </div>
               </div>
 
-              <div id="fb-post-section" class="mt-8 space-y-4 hidden">
-                <h2 class="text-xl font-bold flex items-center gap-2"><span class="w-1.5 h-6 bg-blue-500 rounded-full"></span> อ่านจากโพสต์ผู้วาด / ผู้แปล</h2>
-                <div class="flex justify-center bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-sm">
-                   <div id="fb-embed-container"></div>
-                </div>
-              </div>
-
               <div class="mt-16 pt-8 border-t border-slate-200 dark:border-slate-800 flex justify-end">
                  <button id="edit-btn" class="text-[10px] font-bold opacity-20 hover:opacity-100 transition-all uppercase tracking-widest px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800">Edit Data</button>
               </div>
@@ -160,30 +151,46 @@
 
         document.getElementById("manga-desc").textContent = m.description || "ยังไม่มีข้อมูลเรื่องย่อในขณะนี้";
 
-        // ส่วนที่ปรับปรุงใหม่: เปลี่ยนเป็นการ์ด Facebook สไตล์พรีเมียม กดไปอ่านได้ 100% รูปไม่ค้าง
         if (m.facebook_post_url) {
+          // สั่งให้ถอดคลาส hidden บนมือถือออก แต่อำนาจของ lg:hidden จะคอยกดล็อกไม่ให้แสดงบนคอมตามเดิม
           document.getElementById("fb-post-section").classList.remove("hidden");
           const container = document.getElementById("fb-embed-container");
 
-          // ปรับแต่งหน้าตาของกล่องแจ้งเตือนให้ออกมาเป็นสไตล์การ์ดแบนเนอร์ที่สวยงามและกลมกลืนกับธีมเว็บ
-          container.innerHTML = `
-            <div class="w-full max-w-xl mx-auto my-2 p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-slate-900/40 border border-blue-100 dark:border-blue-900/40 text-center shadow-sm">
-              <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#1877F2]/10 text-[#1877F2] dark:text-blue-400 mb-4 animate-bounce">
-                <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-              </div>
-              <h3 class="text-lg font-bold mb-1 text-slate-800 dark:text-slate-200">ผลงานนี้เผยแพร่บน Facebook</h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-5 leading-relaxed">
-                เนื่องจากนักแปลลงผลงานไว้ในรูปแบบอัลบั้ม/ภาพสไลด์ เพื่อการดาวน์โหลดข้อมูลรูปภาพที่รวดเร็วและคมชัดสูงสุด กรุณากดปุ่มด้านล่างเพื่อเข้าสู่ Facebook โดยตรง
-              </p>
-              <a href="#" onclick="event.preventDefault(); confirmExit('${m.facebook_post_url}')" 
-                 class="inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-8 py-3.5 bg-[#1877F2] hover:bg-[#166FE5] active:bg-[#1464CD] text-white text-sm font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all transform hover:scale-[1.01] active:scale-95">
-                 <span>📖</span> เปิดอ่านตอนใหม่บน Facebook 
-              </a>
+          container.innerHTML = container.innerHTML = `
+          <div class="w-full max-w-xl mx-auto my-2 p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-slate-900/40 border border-blue-100 dark:border-blue-900/40 text-center shadow-sm">
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#1877F2]/10 text-[#1877F2] dark:text-blue-400 mb-4 animate-bounce">
+              <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
             </div>
-          `;
+            <h3 class="text-lg font-bold mb-1 text-slate-800 dark:text-slate-200">ผลงานนี้เผยแพร่บน Facebook</h3>
+            
+            <div class="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto mb-5 text-left space-y-1.5 bg-white/60 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
+
+              <p class="opacity-80 text-[11px] leading-relaxed mb-2 text-center">เนื่องจากแอป Facebook บนมือถือจะบังคับเข้าสู่แอปของตัวเอง ทำให้ไม่สามารถเปิดลิ้งอ่านได้</p>
+              <div class="border-t border-slate-200/40 my-2"></div>
+              <p>1. แนะนำให้คลิกปุ่ม <span class="font-bold text-blue-600 dark:text-blue-400">"คัดลอกลิงก์ตรง"</span> ด้านล่าง</p>
+              <p>2. นำลิงก์ไปวางในแอปเบราว์เซอร์แยก เช่น <span class="font-bold">Chrome / Safari</span></p>
+              <p>3. กดตั้งค่าเบราว์เซอร์ เลือก <span class="font-bold">"เว็บไซต์เวอร์ชันเดสก์ท็อป" (Desktop Mode)</span></p>
+              <p>4. ปรับมุมมองในคลังภาพจากแบบตาราง ให้เป็น <span class="font-bold text-emerald-600 dark:text-emerald-400">"มุมมองแบบฟีด" (Feed View)</span> เพื่อให้มีโพสเรียงขึ้นมาและสะดวกในการอ่านและติดตามตอนต่อๆไป</p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-2 justify-center items-center">
+              <a href="#" onclick="event.preventDefault(); confirmExit('${m.facebook_post_url}')" 
+                class="inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-6 py-3 bg-[#1877F2] hover:bg-[#166FE5] active:bg-[#1464CD] text-white text-sm font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all transform hover:scale-[1.01] active:scale-95">
+                <span>📖</span> เปิดอ่านระบบเดิม
+              </a>
+              
+              <button onclick="navigator.clipboard.writeText('${m.facebook_post_url}'); alert('📋 คัดลอกลิงก์เรียบร้อยแล้ว! นำลิงก์นี้ไปวางใน Chrome/Safari แล้วปรับเป็น Desktop Mode + มุมมองแบบฟีด ได้เลยครับ');"
+                      type="button"
+                      class="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm font-bold rounded-xl transition-all">
+                <span>📋</span> คัดลอกลิงก์ตรง
+              </button>
+            </div>
+          </div>
+        `;
         }
+
         const infoLeft = document.getElementById("info-left");
         const createInfoRow = (label, value) => `
           <div class="flex items-start gap-4 text-sm">

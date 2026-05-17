@@ -107,6 +107,14 @@
         </div>
 
         <div class="space-y-2">
+          <label class="text-sm font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1">
+            <span>🔹</span> Link โพสต์ Facebook (facebook_post_url) สำหรับแสดงตัวอย่างในหน้าหลัก
+          </label>
+          <input type="url" id="facebook_post_url" placeholder="https://www.facebook.com/username/posts/..."
+            class="w-full px-4 py-3 rounded-xl border border-blue-200 dark:border-blue-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 ring-blue-500/50 transition">
+        </div>
+
+        <div class="space-y-2">
           <label class="text-sm font-semibold opacity-70">หมวดหมู่ (Tags)</label>
           <input type="text" id="tags" placeholder="Action, Fantasy"
             class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
@@ -128,17 +136,14 @@
 
   <script>
   const API_URL = "https://manga-archive.onrender.com";
-  // ดึง editId จาก URL
   const currentEditId = new URLSearchParams(window.location.search).get("editId");
 
-  // 1. โหลดข้อมูลมาใส่ใน Form เมื่อต้องการแก้ไข
   if (currentEditId) {
     document.getElementById("form-title").innerText = "📝 แก้ไขข้อมูลมังงะ";
     
     fetch(`${API_URL}/manga`)
       .then(res => res.json())
       .then(data => {
-        // แก้ไขจุดนี้: ให้หา ID ที่ตรงกันไม่ว่าจะชื่อฟิลด์ id หรือ _id
         const m = data.find(x => (x.id || x._id || "").toString() === currentEditId.toString());
         
         if (m) {
@@ -154,6 +159,8 @@
           document.getElementById("thai_url").value = m.thai_url || "";
           document.getElementById("eng_url").value = m.eng_url || "";
           document.getElementById("original_url").value = m.original_url || "";
+          // ดึงค่ามาแสดงในส่วนที่แก้ไข
+          document.getElementById("facebook_post_url").value = m.facebook_post_url || "";
           document.getElementById("tags").value = (m.tags || []).join(", ");
           document.getElementById("description").value = m.description || "";
         } else {
@@ -163,7 +170,6 @@
       .catch(err => console.error("Error fetching data:", err));
   }
 
-  // 2. ฟังก์ชันส่งข้อมูล (Add / Update)
   document.getElementById("manga-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("adminToken");
@@ -182,6 +188,8 @@
       thai_url: document.getElementById("thai_url").value,
       eng_url: document.getElementById("eng_url").value,
       original_url: document.getElementById("original_url").value,
+      // เพิ่มค่าลงใน Payload ที่จะยิงไปหาหลังบ้าน
+      facebook_post_url: document.getElementById("facebook_post_url").value.trim(),
       tags: document.getElementById("tags").value.split(",").map(t => t.trim()).filter(t => t),
       description: document.getElementById("description").value,
       updated_at: new Date().toISOString()

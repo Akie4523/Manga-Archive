@@ -13,6 +13,9 @@
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen font-['Noto_Sans_Thai'] transition-colors duration-300">
 
+  <div id="fb-root"></div>
+  <script async defer crossorigin="anonymous" src="https://connect.facebook.net/th_TH/sdk.js#xfbml=1&version=v18.0"></script>
+
   <nav class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
     <div class="max-w-7xl mx-auto px-4 h-16 flex items-center">
       <a href="index.html" class="text-sm font-bold flex items-center gap-2 hover:text-blue-500 transition"><span>←</span> กลับหน้าหลัก</a>
@@ -51,12 +54,39 @@
       });
     }
 
-    // ฟังก์ชันจัดการ Modal
     function confirmExit(targetUrl) {
-        document.getElementById('target-link').innerText = targetUrl;
-        document.getElementById('final-link').href = targetUrl;
-        document.getElementById('exit-modal').classList.remove('hidden');
+    document.getElementById('target-link').innerText = targetUrl;
+    
+    let finalUrl = targetUrl;
+
+    try {
+        let urlObj = new URL(targetUrl);
+        
+        // 1. ตรวจสอบถ้าเป็นลิงก์เฟสบุ๊ค บังคับแปลงเป็นเวอร์ชัน www (คอมพิวเตอร์) 
+        // เพื่อไม่ให้มันเด้งเข้าหน้าแอปมือถือที่ชอบเรียงจัดรูปตารางมั่ว ๆ
+        if (urlObj.hostname.includes("facebook.com")) {
+            urlObj.hostname = "www.facebook.com";
+            
+            // 2. แอบแฝงโค้ดลับพ่วงท้ายเพื่อล็อกให้แสดงเป็น "มุมมองฟีดแนวยาว" (Feed View) 
+            // ตัวเว็บจะโดนบังคับเรียงรูปหน้า 1, 2, 3 ตามลำดับเวลาที่อัปโหลดทันที
+            if (!urlObj.searchParams.has("v")) {
+                urlObj.searchParams.set("v", "feed"); 
+            }
+        }
+        
+        finalUrl = urlObj.toString();
+    } catch (e) {
+        finalUrl = targetUrl;
     }
+
+    // ล็อกให้ปุ่มตกลงใน Modal เปิดลิงก์ที่โกงแล้ว และให้เปิดแท็บใหม่บน Browser นอกแอป
+    const finalLinkEl = document.getElementById('final-link');
+    finalLinkEl.href = finalUrl;
+    finalLinkEl.target = "_blank"; 
+    finalLinkEl.rel = "noopener noreferrer";
+
+    document.getElementById('exit-modal').classList.remove('hidden');
+}
 
     function closeExitModal() {
         document.getElementById('exit-modal').classList.add('hidden');
@@ -114,6 +144,13 @@
                 </div>
               </div>
 
+              <div id="fb-post-section" class="mt-8 space-y-4 hidden">
+                <h2 class="text-xl font-bold flex items-center gap-2"><span class="w-1.5 h-6 bg-blue-500 rounded-full"></span> อ่านจากโพสต์ผู้วาด / ผู้แปล</h2>
+                <div class="flex justify-center bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-sm">
+                   <div id="fb-embed-container"></div>
+                </div>
+              </div>
+
               <div class="mt-16 pt-8 border-t border-slate-200 dark:border-slate-800 flex justify-end">
                  <button id="edit-btn" class="text-[10px] font-bold opacity-20 hover:opacity-100 transition-all uppercase tracking-widest px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800">Edit Data</button>
               </div>
@@ -123,6 +160,30 @@
 
         document.getElementById("manga-desc").textContent = m.description || "ยังไม่มีข้อมูลเรื่องย่อในขณะนี้";
 
+        // ส่วนที่ปรับปรุงใหม่: เปลี่ยนเป็นการ์ด Facebook สไตล์พรีเมียม กดไปอ่านได้ 100% รูปไม่ค้าง
+        if (m.facebook_post_url) {
+          document.getElementById("fb-post-section").classList.remove("hidden");
+          const container = document.getElementById("fb-embed-container");
+
+          // ปรับแต่งหน้าตาของกล่องแจ้งเตือนให้ออกมาเป็นสไตล์การ์ดแบนเนอร์ที่สวยงามและกลมกลืนกับธีมเว็บ
+          container.innerHTML = `
+            <div class="w-full max-w-xl mx-auto my-2 p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-slate-900/40 border border-blue-100 dark:border-blue-900/40 text-center shadow-sm">
+              <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#1877F2]/10 text-[#1877F2] dark:text-blue-400 mb-4 animate-bounce">
+                <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold mb-1 text-slate-800 dark:text-slate-200">ผลงานนี้เผยแพร่บน Facebook</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-5 leading-relaxed">
+                เนื่องจากนักแปลลงผลงานไว้ในรูปแบบอัลบั้ม/ภาพสไลด์ เพื่อการดาวน์โหลดข้อมูลรูปภาพที่รวดเร็วและคมชัดสูงสุด กรุณากดปุ่มด้านล่างเพื่อเข้าสู่ Facebook โดยตรง
+              </p>
+              <a href="#" onclick="event.preventDefault(); confirmExit('${m.facebook_post_url}')" 
+                 class="inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-8 py-3.5 bg-[#1877F2] hover:bg-[#166FE5] active:bg-[#1464CD] text-white text-sm font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all transform hover:scale-[1.01] active:scale-95">
+                 <span>📖</span> เปิดอ่านตอนใหม่บน Facebook 
+              </a>
+            </div>
+          `;
+        }
         const infoLeft = document.getElementById("info-left");
         const createInfoRow = (label, value) => `
           <div class="flex items-start gap-4 text-sm">

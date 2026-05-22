@@ -229,8 +229,18 @@
             const onclickAttr = isDirect ? `onclick="event.preventDefault(); confirmExit('${m.thai_url}')"` : "";
             linksContainer.innerHTML += `<a href="${target}" ${onclickAttr} class="flex items-center justify-center w-full py-4 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold shadow-lg transition hover:scale-[1.02] active:scale-95 text-center px-4">🇹🇭 อ่านแปลไทย</a>`;
         }
-        if (m.eng_url) linksContainer.innerHTML += `<a href="#" onclick="event.preventDefault(); confirmExit('${m.eng_url}')" class="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition hover:scale-[1.02] active:scale-95 text-center px-4">🇺🇸 อ่านแปล ENG</a>`;
-        if (m.original_url) linksContainer.innerHTML += `<a href="#" onclick="event.preventDefault(); confirmExit('${m.original_url}')" class="flex items-center justify-center gap-2 w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl font-bold transition hover:scale-[1.02] active:scale-95 text-center px-4">🌐 ต้นฉบับ (Raw)</a>`;
+        if (m.thai_url_Buy) {
+            const isDirect = m.thai_url_Buy.includes('facebook.com') || m.thai_url_Buy.includes('nekopost.net');
+            const target = isDirect ? m.thai_url_Buy : `chapters.html?url=${encodeURIComponent(m.thai_url_Buy)}&id=${m.id}`;
+            const onclickAttr = isDirect ? `onclick="event.preventDefault(); confirmExit('${m.thai_url_Buy}')"` : "";
+            linksContainer.innerHTML += `<a href="${target}" ${onclickAttr} class="flex items-center justify-center w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg transition hover:scale-[1.02] active:scale-95 text-center px-4">🇹🇭 อ่านแปลไทย (เสียเงิน)</a>`;
+        }
+        if (m.eng_url) linksContainer.innerHTML += `<a href="#" onclick="event.preventDefault(); confirmExit('${m.eng_url}')" class="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition hover:scale-[1.02] active:scale-95 text-center px-4">🇺🇸 Read ENG translation</a>`;
+        if (m.eng_url_Buy) linksContainer.innerHTML += `<a href="#" onclick="event.preventDefault(); confirmExit('${m.eng_url_Buy}')" class="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg transition hover:scale-[1.02] active:scale-95 text-center px-4">🇺🇸 Read ENG translation (Buy)</a>`;
+        if (m.original_url) linksContainer.innerHTML += `<a href="#" onclick="event.preventDefault(); confirmExit('${m.original_url}')" class="flex items-center justify-center gap-2 w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl font-bold transition hover:scale-[1.02] active:scale-95 text-center px-4">🌐 
+Original (Raw)</a>`;
+        if (m.original_url_Buy) linksContainer.innerHTML += `<a href="#" onclick="event.preventDefault(); confirmExit('${m.original_url_Buy}')" class="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg transition hover:scale-[1.02] active:scale-95 text-center px-4">🌐 
+Original (Raw / Buy)</a>`;
 
         document.getElementById("edit-btn").onclick = () => {
           window.location.href = `admin.html?editId=${m.id || m._id}`;

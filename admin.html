@@ -105,6 +105,23 @@
               class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
           </div>
         </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="space-y-2">
+              <label class="text-sm font-semibold opacity-70">Link อ่านแปลไทยแบบเสียเงิน (thai_url_Buy)</label>
+              <input type="url" id="thai_url_Buy" placeholder="https://..."
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
+              </div>
+            <div class="space-y-1">
+            <label class="text-sm font-semibold opacity-70">Link อ่านแปล ENG แบบเสียเงิน (eng_url_Buy)</label>
+            <input type="url" id="eng_url_Buy" placeholder="https://..."
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
+              </div>
+            <div class="space-y-1">
+            <label class="text-sm font-semibold opacity-70">Link ต้นฉบับ แบบเสียเงิน (original_url_Buy)</label>
+            <input type="url" id="original_url_Buy" placeholder="https://..."
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 ring-blue-500/20">
+              </div>
+          </div>
 
         <div class="space-y-2">
           <label class="text-sm font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1">
@@ -159,10 +176,12 @@
           document.getElementById("thai_url").value = m.thai_url || "";
           document.getElementById("eng_url").value = m.eng_url || "";
           document.getElementById("original_url").value = m.original_url || "";
-          // ดึงค่ามาแสดงในส่วนที่แก้ไข
           document.getElementById("facebook_post_url").value = m.facebook_post_url || "";
           document.getElementById("tags").value = (m.tags || []).join(", ");
           document.getElementById("description").value = m.description || "";
+          document.getElementById("thai_url_Buy").value = m.thai_url_Buy || "";
+          document.getElementById("eng_url_Buy").value = m.eng_url_Buy || "";
+          document.getElementById("original_url_Buy").value = m.original_url_Buy || "";
         } else {
           console.error("Manga not found for ID:", currentEditId);
         }
@@ -186,6 +205,7 @@
       translator: document.getElementById("translator").value,
       translator_link: document.getElementById("translator_link").value.trim(),
       thai_url: document.getElementById("thai_url").value,
+      thai_url_Buy: document.getElementById("thai_url_Buy").value,
       eng_url: document.getElementById("eng_url").value,
       original_url: document.getElementById("original_url").value,
       // เพิ่มค่าลงใน Payload ที่จะยิงไปหาหลังบ้าน

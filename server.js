@@ -159,16 +159,6 @@ app.get("/api/manga/:id", async (req, res) => {
     } catch (err) { res.status(500).json({ message: "Error fetching manga" }); }
 });
 
-app.put('/api/manga/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const updateData = req.body;
-        const updatedManga = await Manga.findOneAndUpdate({ id: id }, updateData, { new: true });
-        if (!updatedManga) return res.status(404).json({ message: "ไม่พบมังงะที่ต้องการแก้ไข" });
-        res.json({ success: true, manga: updatedManga });
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
     // เพิ่มมังงะใหม่
 app.post("/add", auth, async (req, res) => {
     try {

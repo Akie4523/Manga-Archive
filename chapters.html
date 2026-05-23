@@ -97,14 +97,8 @@
         try {
             let urlObj = new URL(targetUrl);
         
-            // ตรวจสอบเช็กเฉพาะถ้าเป็นลิงก์โพสต์/อัลบั้มของ Facebook เท่านั้น
             if (urlObj.hostname.includes("facebook.com")) {
-            // 1. เปลี่ยนชื่อ Hostname ให้เป็น www.facebook.com (เวอร์ชันคอมพิวเตอร์)
-            // วิธีนี้จะช่วยหลีกเลี่ยงไม่ให้มือถือเด้งเข้าแอป Facebook ตัวเต็มที่ชอบเรียงรูปสลับกัน
                 urlObj.hostname = "www.facebook.com";
-            
-            // 2. เติม Parameter บังคับให้ระบบแสดงผลใน "มุมมองฟีดแนวยาว" (Feed View)
-            // ทำให้รูปภาพเรียงจากบนลงล่างตามลำดับหน้า 1, 2, 3 เสมอตั้งแต่แรกโหลด
                 if (!urlObj.searchParams.has("v")) {
                     urlObj.searchParams.set("v", "feed"); 
             }
@@ -115,7 +109,6 @@
                 finalUrl = targetUrl;
             }
 
-            // สั่งให้ลิงก์เปิดหน้าต่างใหม่ข้ามระบบแอป เพื่อบังคับรันบน Browser นอกแอป (เช่น Chrome, Safari)
             const finalLinkEl = document.getElementById('final-link');
             finalLinkEl.href = finalUrl;
             finalLinkEl.target = "_blank"; 

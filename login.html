@@ -19,7 +19,7 @@
     <div class="w-full max-w-[400px]">
         <div class="text-center mb-8">
             <h1 class="text-3xl font-black bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent mb-2">Manga Archive</h1>
-            <p class="text-slate-500 dark:text-slate-400 text-sm italic">"Akie Project - Secure Access"</p>
+            <p class="text-slate-500 dark:text-slate-400 text-sm italic">"Akie Project"</p>
         </div>
 
         <div class="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800">
@@ -53,7 +53,6 @@
     <script>
         const API_URL = "https://manga-archive.onrender.com";
 
-        // ฟังก์ชันป้องกัน XSS สำหรับข้อความแจ้งเตือน
         function escapeHTML(str) {
             if (!str) return "";
             return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
@@ -66,12 +65,12 @@
 
             if (!u || !p) return;
 
-            // 1. ป้องกัน Brute Force เบื้องต้น (ปิดปุ่มระหว่างโหลด)
+            
             btn.disabled = true;
             btn.innerHTML = "⏳ ตรวจสอบความปลอดภัย...";
 
             try {
-                // 2. ใช้ HTTPS เสมอ (API_URL ของคุณเป็น https อยู่แล้ว ดีมากครับ)
+                
                 const res = await fetch(`${API_URL}/login`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -81,15 +80,12 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    // 3. การเก็บข้อมูลลง LocalStorage (พยายามอย่าเก็บรหัสผ่านตรงๆ)
                     localStorage.setItem('adminToken', data.token);
                     localStorage.setItem('username', data.username);
                     localStorage.setItem('myFavs', JSON.stringify(data.favorites || []));
                     
-                    // Redirect ไปหน้า index
                     window.location.replace('index.html'); 
                 } else {
-                    // ป้องกันการเดาชื่อผู้ใช้: แจ้งเตือนแบบคลุมเครือ (Generic Error)
                     alert("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
                     btn.disabled = false;
                     btn.innerHTML = "เข้าสู่ระบบ";

@@ -9,7 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap" rel="stylesheet" />
   
   <script>
-    // เช็ก Dark Mode
     tailwind.config = { darkMode: 'class' }
     if (localStorage.getItem("dark") === "true") {
       document.documentElement.classList.add("dark");
@@ -117,7 +116,6 @@
         const data = await res.json();
         allData = data;
 
-        // ปรับปรุงหมวดหมู่
         const tagSelect = document.getElementById("tag-filter");
         const tagSet = new Set();
         data.forEach(m => m.tags?.forEach(t => tagSet.add(t.trim())));

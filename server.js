@@ -10,7 +10,7 @@ const cheerio = require('cheerio');
 
 const { Client, GatewayIntentBits, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 
-// --- 1. ตั้งค่าบอท (ดึงจาก Environment ของ Render) ---
+// --- 1. ตั้งค่าบอท ---
 const TOKEN = process.env.DISCORD_TOKEN;
 const MY_OWNER_ID = '767330467329343528';
 const TRAP_CHANNELS = ['1498735590596804721', '1498741392770465864'];
@@ -24,17 +24,17 @@ const client = new Client({
     ]
 });
 
-// --- 2. ระบบจัดการห้องกับดัก ---
+// --- 2. ระบบดักจับbot ---
 client.on('messageCreate', async (message) => {
     // ป้องกันบอทคุยกันเอง
     if (message.author.bot) return;
 
-    // ถ้าเป็นไอดี Akie ให้ข้ามไปเลย ไม่ต้องโดนเตะ
+    // bypass User
     if (message.author.id === MY_OWNER_ID) return;
 
-    // เช็คว่าห้องที่พิมพ์อยู่ในลิสต์ห้องกับดักไหม
+    // เช็คว่าห้องที่พิมพ์อยู่ในลิสต์ห้องกับดักหรือไม่
     if (TRAP_CHANNELS.includes(message.channel.id)) {
-        console.log(`🎯 ตรวจพบคนหลงกลในห้อง ${message.channel.name}: ${message.author.tag}`);
+        console.log(` ตรวจพบคนหลงกลในห้อง ${message.channel.name}: ${message.author.tag}`);
         
         try {
             const member = await message.guild.members.fetch(message.author.id);
@@ -45,7 +45,7 @@ client.on('messageCreate', async (message) => {
             // 2. ลบข้อความทันที
             await message.delete();
 
-            // 3. ส่ง DM แจ้งเตือนตามข้อความที่คุณต้องการ
+            // 3. ส่ง DM แจ้งเตือนตามข้อความ
             try {
                 await message.author.send(
                     `**แจ้งเตือนจากเซิร์ฟเวอร์ ${message.guild.name}**\n\n` +
@@ -53,12 +53,12 @@ client.on('messageCreate', async (message) => {
                     `ระบบได้ทำการลบข้อความของคุณเพื่อความปลอดภัย หากคุณไม่ได้เป็นคนพิมพ์ โปรดตรวจสอบไอดีของคุณโดยด่วน`
                 );
             } catch (dmErr) {
-                console.log(`⚠️ ส่ง DM ให้ ${message.author.tag} ไม่สำเร็จ (เขาอาจปิด DM ส่วนตัว)`);
+                console.log(`⚠️ ส่ง DM ให้ ${message.author.tag} ไม่สำเร็จ `);
             }
 
             console.log(`⚡ จัดการ Timeout และลบข้อความของ ${message.author.tag} สำเร็จ`);
         } catch (err) {
-            console.error('❌ เกิดข้อผิดพลาดในการลงโทษ:', err);
+            console.error(' เกิดข้อผิดพลาดในการลงโทษ:', err);
         }
     }
 });
@@ -130,7 +130,6 @@ const auth = (req, res, next) => {
 };
 
 // --- 4. GAS Config ---
-// URL ของ Google Apps Script ที่คุณให้มา
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxlIEynv1arhgGRxg4t2VgxZ9zvpzJEuStUWHPHrE4m9qiWhuA8Kx4hC37I2oFh4dL7/exec";
 
 const isWhitelisted = (url) => {
@@ -141,7 +140,7 @@ const isWhitelisted = (url) => {
     } catch (e) { return false; }
 };
 
-// --- 5. API Routes (ข้อมูลทั่วไป) ---
+// --- 5. API Route ---
 app.get("/ping", (req, res) => res.status(200).send("OK"));
 
 app.post('/login', async (req, res) => {
@@ -220,7 +219,7 @@ app.post("/favorite", auth, async (req, res) => {
     res.json({ success: true, favorites: user.favorites });
 });
 
-// --- 6. API Routes (Scraper using GAS Proxy) ---
+// --- 6. API Routes ---
 
 app.get('/api/fetch-chapters', async (req, res) => {
     const { url } = req.query;
@@ -246,8 +245,7 @@ app.get('/api/fetch-chapters', async (req, res) => {
         const $ = cheerio.load(html);
         const chapters = [];
 
-        // ปรับ Selector ให้เจาะจงสำหรับ Fluxtoon มากขึ้น
-        // ปกติ Fluxtoon จะใช้ .wp-manga-chapter หรือระบุเจาะจงใน list-group
+
         $('.wp-manga-chapter a, .listing-chapters_wrap a').each((i, el) => {
             const href = $(el).attr('href');
             const text = $(el).text().trim();
@@ -257,7 +255,7 @@ app.get('/api/fetch-chapters', async (req, res) => {
         });
 
         if (chapters.length === 0) {
-            // ลองใช้ Selector สำรองถ้าหาไม่เจอ
+            // ใช้ Selector สำรองถ้าหาไม่เจอ
             $('a').each((i, el) => {
                 const href = $(el).attr('href') || "";
                 const text = $(el).text().trim();
@@ -307,7 +305,7 @@ app.get('/api/fetch-images', async (req, res) => {
 
 app.get('/api/fetch-chapters', async (req, res) => {
     const { url } = req.query;
-    // ไม่ต้องฝืนดึงแล้ว ส่ง success: false ไปเลยเพื่อให้ Frontend จัดการต่อ
+    // Bypass
     console.log(`⚠️ Redirecting user to source: ${url}`);
     res.json({ 
         success: false, 
